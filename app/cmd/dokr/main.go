@@ -1,12 +1,16 @@
 package main
 
 import (
+	"archive/tar"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/gabrieldiaziv/wghidra/app/bo"
+	"github.com/gabrieldiaziv/wghidra/app/repo/cm"
 	"github.com/gabrieldiaziv/wghidra/app/repo/dokr"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -26,16 +30,34 @@ func main() {
 	}
 
 	ctx := context.Background()
-	runner, err := dokr.NewRunner(def)
 
+	cli, err := cm.NewDockerClient()
 	if err != nil {
-		fmt.Printf("cannot create new runner: %v", err)
+		log.Fatalf("cannot make docker client %v", err)
 	}
 
-	doneCh := make(chan bool)
-	go runner.Run(ctx, doneCh)
+	runner := dokr.NewRunner(
+		cm.NewContainerManager(cli),
+	)
 
-	<-doneCh
+	results := runner.Run(ctx, def)
+	for i, res := range results {
+		if res.Error != nil {
+			fmt.Printf("%d failed: %s\n", i, res.Error.Msg)
+			continue
+		}
+		stream := tar.NewReader(res.TarStream)
+		if _, err = stream.Next(); err != nil {
+			fmt.Printf("%d failed: parse\n", i)
+			continue
+		}
+
+		io.Copy(os.Stdout, stream)
+	}
+
+	if err != nil {
+		panic(err)
+	}
 
 }
 
@@ -53,7 +75,7 @@ func readTaskDefinition(fileName string) (bo.TaskDefinition, error) {
 	}
 
 	for i := 0; i < len(def.Tasks); i++ {
-		reader, err := os.Open("tasks.tar.gz")
+		reader, err := os.Open("./main.go")
 		if err != nil {
 			panic("cannot find tar")
 		}

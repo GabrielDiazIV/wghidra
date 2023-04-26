@@ -1,60 +1,47 @@
 package dokr
 
 import (
-	"archive/tar"
 	"context"
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/gabrieldiaziv/wghidra/app/bo"
 )
 
-func (r *runner) Run(ctx context.Context, doneCh chan<- bool) {
-	taskDoneCh := make(chan bool)
-	for _, task := range r.def.Tasks {
-		go r.runTask(ctx, task, taskDoneCh)
+func (r *runner) Run(ctx context.Context, def bo.TaskDefinition) []bo.TaskResult {
+
+	res := make([]bo.TaskResult, len(def.Tasks))
+	resCh := make(chan bo.TaskResult, len(def.Tasks))
+
+	for _, task := range def.Tasks {
+		go r.runTask(ctx, task, resCh)
 	}
 
-	tasksCompleted := 0
-	for {
-
-		if <-taskDoneCh {
-			tasksCompleted++
-		}
-
-		if tasksCompleted == len(r.def.Tasks) {
-			doneCh <- true
-			return
-		}
+	for i := range def.Tasks {
+		res[i] = <-resCh
 	}
+
+	return res
 }
 
-func (r *runner) runTask(ctx context.Context, task bo.UnitTask, taskDoneCh chan<- bool) {
-	defer func() {
-		taskDoneCh <- true
-	}()
+func (r *runner) runTask(ctx context.Context, task bo.UnitTask, resCh chan<- bo.TaskResult) {
 
 	fmt.Println("preparing tasks - ", task.Name)
 	if err := r.containerManager.PullImage(ctx, task.Runner); err != nil {
-		fmt.Println(err)
+		resCh <- bo.TaskFailed(task, 0, "PULL_IMAGE")
 		return
-	}
-
-	fmt.Println("creating task - ", task.Name)
-	if task.Exe == nil {
-		panic("reader is emptyp in dokr")
 	}
 
 	id, err := r.containerManager.CreateContainer(ctx, task)
 	if err != nil {
 		fmt.Println(err)
+		resCh <- bo.TaskFailed(task, 1, "CREATE_CONTAINER")
 		return
 	}
 
 	fmt.Println("starting task - ", task.Name)
 	if err = r.containerManager.StartContainer(ctx, id); err != nil {
 		fmt.Println(err)
+		resCh <- bo.TaskFailed(task, 2, "START_CONTAINER")
 		return
 	}
 
@@ -64,6 +51,7 @@ func (r *runner) runTask(ctx context.Context, task bo.UnitTask, taskDoneCh chan<
 	statusSucess, err := r.containerManager.WaitForContainer(ctx, id)
 	if err != nil {
 		fmt.Println(err)
+		resCh <- bo.TaskFailed(task, 3, "WAIT_CONTAINER")
 		return
 	}
 
@@ -72,17 +60,15 @@ func (r *runner) runTask(ctx context.Context, task bo.UnitTask, taskDoneCh chan<
 		stream, err := r.containerManager.CopyTarOutput(ctx, id)
 
 		if err != nil {
-			fmt.Println("could not parse tar", err)
+			fmt.Println(err)
+			resCh <- bo.TaskFailed(task, 4, "COPY_TAR")
 			return
 		}
 
-		defer stream.Close()
-		tr := tar.NewReader(stream)
-
-		if _, err := tr.Next(); err != nil {
-			panic("read err")
+		resCh <- bo.TaskResult{
+			Name:      task.Name,
+			TarStream: stream,
+			Error:     nil,
 		}
-
-		io.Copy(os.Stdout, stream)
 	}
 }

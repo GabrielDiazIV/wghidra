@@ -1,7 +1,11 @@
 package iface
 
-import "context"
+import (
+	"context"
+
+	"github.com/gabrieldiaziv/wghidra/app/bo"
+)
 
 type Dokr interface {
-	Run(ctx context.Context, doneCh chan<- bool)
+	Run(ctx context.Context, def bo.TaskDefinition) []bo.TaskResult
 }

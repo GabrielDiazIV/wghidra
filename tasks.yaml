@@ -3,4 +3,8 @@ tasks:
   - name: hello-gopher
     runner: busybox
     command: ["cp", "tasks.yaml", "output.yaml"]
-    cleanup: false
+    cleanup: true
+  - name: gopher
+    runner: busybox
+    command: ["echo","output.yaml", ">>", "/output.yaml"]
+    cleanup: true

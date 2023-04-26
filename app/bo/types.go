@@ -1,7 +1,7 @@
 package bo
 
 import (
-	"os"
+	"io"
 )
 
 type TaskDefinition struct {
@@ -10,22 +10,36 @@ type TaskDefinition struct {
 }
 
 type UnitTask struct {
-	Name    string   `yaml:"name,omitempty"    json:"name,omitempty"`
-	ID      string   `yaml:"id,omitempty"      json:"id,omitempty"`
-	Runner  string   `yaml:"runner,omitempty"  json:"runner,omitempty"`
-	Command []string `yaml:"command,omitempty" json:"command,omitempty"`
-	Cleanup bool     `yaml:"cleanup,omitempty" json:"cleanup,omitempty"`
-	Exe     *os.File `yaml:"-"                 json:"-"`
+	Name    string        `yaml:"name,omitempty"    json:"name,omitempty"`
+	ID      string        `yaml:"id,omitempty"      json:"id,omitempty"`
+	Runner  string        `yaml:"runner,omitempty"  json:"runner,omitempty"`
+	Command []string      `yaml:"command,omitempty" json:"command,omitempty"`
+	Cleanup bool          `yaml:"cleanup,omitempty" json:"cleanup,omitempty"`
+	Exe     io.ReadCloser `yaml:"-"                 json:"-"`
 }
 
 type TaskResult struct {
-	Name  string `yaml:"name,omitempty"    json:"name,omitempty"`
-	ID    string `yaml:"id,omitempty"      json:"id,omitempty"`
-	Link  string `yaml:"link,omitempty"      json:"link,omitempty"`
-	Error struct {
-		Code int    `json:"code,omitempty"`
-		Msg  string `json:"msg,omitempty"`
-	} `json:"error,omitempty"`
+	Name      string        `yaml:"name,omitempty"    json:"name,omitempty"`
+	ID        string        `yaml:"id,omitempty"      json:"id,omitempty"`
+	Link      string        `yaml:"link,omitempty"      json:"link,omitempty"`
+	TarStream io.ReadCloser `yaml:"-"      json:"-"`
+	Error     *TaskError    `json:"error,omitempty"`
+}
+
+type TaskError struct {
+	Code int    `json:"code,omitempty"`
+	Msg  string `json:"msg,omitempty"`
+}
+
+func TaskFailed(ut UnitTask, code int, msg string) TaskResult {
+	return TaskResult{
+		Name: ut.Name,
+		ID:   ut.ID,
+		Error: &TaskError{
+			Code: code,
+			Msg:  msg,
+		},
+	}
 }
 
 type ImagePullStatus struct {
