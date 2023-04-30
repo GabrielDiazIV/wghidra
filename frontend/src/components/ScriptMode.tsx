@@ -35,13 +35,6 @@ function ScriptMode(props) {
     }
   };
 
-  // run when body changes
-  useEffect(() => {
-    setSelectedOption('');
-    setOutput('');
-    setIsLoading(false);
-  }, [body]);
-
   return (
     <div className="script-mode">
       <div className="script-mode__textbox-container">
