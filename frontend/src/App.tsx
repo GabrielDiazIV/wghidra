@@ -1,34 +1,70 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import LandingPage from './components/LandingPage'
+import MainPage from './components/MainPage';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [screen, setScreen] = useState('landing');
+  const [status, setStatus] = useState('start');
+  const [transition, setTransition] = useState('');
+  const [file, setFile] = useState('');
+  const [functionList, setFunctionList] = useState([])
+  const [errorMessage, setErrorMessage] = useState('')
 
+  function someFetch() {
+    // setFunctionList
+    // setStatus
+  }
+
+  function transitionScreens(responseType) {
+    console.log("Setting status to " + responseType);
+    setStatus(responseType);
+    
+    setTimeout(() => {
+      if(responseType === 'fail') {
+        setStatus('start');
+        setTransition('fade-in');
+      }
+      else
+        setScreen('main');
+
+    }, 3000);
+    setTimeout(() => setTransition('fade-out'), 2600); // Change status to fade-out after 3 seconds
+  }
+
+  const handleFileSelect = async(file)  => {
+    setFile(file);
+    setStatus('loading');
+
+    const formData = new FormData();
+    formData.append('file', file);
+  
+    fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    })
+    .then(async response => {
+      if(response.ok) {
+        const data = await response.json();
+        setFunctionList(data.functions);
+        transitionScreens('success');
+      }
+      else {
+        const data = await response.json();
+        setErrorMessage(data.error);
+        transitionScreens('fail');
+      }
+    })
+    .catch(error => {
+      setErrorMessage(error.message);
+      transitionScreens('success');
+    });
+  }
+
+  let content = screen === 'landing' ? <LandingPage status={status} error={errorMessage} transition={transition} onFileSelect={(file) => {handleFileSelect(file)}}/> : <MainPage/>;
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div>
+      {content}
+    </div>
   )
 }
 
