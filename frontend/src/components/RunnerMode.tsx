@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { atelierCaveDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import AceEditor from 'react-ace';
+import 'ace-builds/src-noconflict/mode-c_cpp';
+import 'ace-builds/src-noconflict/theme-monokai';
 import '../css/RunnerMode.css';
 
 
 function RunnerMode(props) {
-    const { body, params } = props;
-
+    const {params } = props;
+  const [body, setBody] = useState(props.body);
   const [output, setOutput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [textValues, setTextValues] = useState<string[]>(new Array(params.length).fill(''));
@@ -41,14 +42,26 @@ function RunnerMode(props) {
     setTextValues(new Array(params.length).fill(''));
     setOutput('');
     setIsLoading(false);
-  }, [body, ]);
+    setBody(props.body);
+  }, [props.body]);
 
   return (
     <div className="runner-mode">
       <div className="runner-mode__textbox-container">
-        <SyntaxHighlighter className="runner-mode__textbox" language="cpp" style={atelierCaveDark}>
-          {body}
-        </SyntaxHighlighter>
+      <AceEditor
+        className="runner-mode__textbox"
+        mode="c_cpp"
+        theme="monokai"
+        value={body}
+        onChange={(newValue) => setBody(newValue)}
+        fontSize={16}
+        width="100%"
+        height="auto"
+        minLines={15}
+        maxLines={Infinity}
+        wrapEnabled={true}
+        editorProps={{ $blockScrolling: true }}
+      />
       </div>
       <div className="runner-mode__dropdown-container">
         <div className='runner-mode__params-container'>
