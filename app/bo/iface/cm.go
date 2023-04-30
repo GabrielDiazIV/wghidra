@@ -9,8 +9,8 @@ import (
 )
 
 type ContainerManager interface {
-	PullImage(ctx context.Context, image string) error
-	CreateContainer(ctx context.Context, task bo.UnitTask) (string, error)
+	PullImage(ctx context.Context) error
+	CreateContainer(ctx context.Context, task bo.UnitTask, inputStream io.Reader) (string, error)
 	StartContainer(ctx context.Context, id string) error
 	CopyTarOutput(ctx context.Context, id string) (io.ReadCloser, error)
 	WaitForContainer(ctx context.Context, id string) (bool, error)

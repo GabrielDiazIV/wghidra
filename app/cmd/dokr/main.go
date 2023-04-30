@@ -1,39 +1,52 @@
 package main
 
 import (
-	"archive/tar"
 	"context"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
 	"os"
 
 	"github.com/gabrieldiaziv/wghidra/app/bo"
 	"github.com/gabrieldiaziv/wghidra/app/repo/cm"
 	"github.com/gabrieldiaziv/wghidra/app/repo/dokr"
-	yaml "gopkg.in/yaml.v2"
 )
 
+func cmd(name string, argv []string) bo.UnitTask {
+	return bo.NewScriptTask(name, bo.ScriptTask{ScriptName: argv[0], Parameters: argv[1:]})
+}
+
 func main() {
-	args := os.Args[1:]
-
-	if len(args) < 1 {
-		fmt.Println("need to pass file to parse")
-		os.Exit(1)
-	}
-
-	def, err := readTaskDefinition(args[0])
-	if err != nil {
-		fmt.Println("invalid task file")
-		os.Exit(1)
-	}
-
+	// args := os.Args[1:]
+	//
+	// if len(args) < 1 {
+	// 	fmt.Println("need to pass file to parse")
+	// 	os.Exit(1)
+	// }
+	//
+	// def, err := readTaskDefinition(args[0])
+	// if err != nil {
+	// 	fmt.Println("invalid task file")
+	// 	os.Exit(1)
+	// }
+	//
 	ctx := context.Background()
 
 	cli, err := cm.NewDockerClient()
 	if err != nil {
 		log.Fatalf("cannot make docker client %v", err)
+	}
+
+	file, err := os.Open("./tasks.tar.gz")
+	if err != nil {
+		log.Fatalf("cannot open file: %v", err)
+	}
+
+	def := bo.TaskDefinition{
+		Exe: file,
+		Tasks: []bo.UnitTask{
+			cmd("task1", []string{"cp", "tasks.yaml", "output.yaml"}),
+			cmd("task2", []string{"cp", "tasks.yaml", "output.yaml"}),
+		},
 	}
 
 	runner := dokr.NewRunner(
@@ -46,41 +59,31 @@ func main() {
 			fmt.Printf("%d failed: %s\n", i, res.Error.Msg)
 			continue
 		}
-		stream := tar.NewReader(res.TarStream)
-		if _, err = stream.Next(); err != nil {
-			fmt.Printf("%d failed: parse\n", i)
-			continue
-		}
 
-		io.Copy(os.Stdout, stream)
+		fmt.Printf("output: %v\n", res.Output)
 	}
-
-	if err != nil {
-		panic(err)
-	}
-
 }
 
-func readTaskDefinition(fileName string) (bo.TaskDefinition, error) {
-
-	data, err := ioutil.ReadFile(fileName)
-	if err != nil {
-		return bo.TaskDefinition{}, err
-	}
-
-	var def bo.TaskDefinition
-	err = yaml.Unmarshal(data, &def)
-	if err != nil {
-		return def, err
-	}
-
-	for i := 0; i < len(def.Tasks); i++ {
-		reader, err := os.Open("./main.go")
-		if err != nil {
-			panic("cannot find tar")
-		}
-
-		def.Tasks[i].Exe = reader
-	}
-	return def, nil
-}
+// func readTaskDefinition(fileName string) (bo.TaskDefinition, error) {
+//
+// 	data, err := ioutil.ReadFile(fileName)
+// 	if err != nil {
+// 		return bo.TaskDefinition{}, err
+// 	}
+//
+// 	var def bo.TaskDefinition
+// 	err = yaml.Unmarshal(data, &def)
+// 	if err != nil {
+// 		return def, err
+// 	}
+//
+// 	for i := 0; i < len(def.Tasks); i++ {
+// 		reader, err := os.Open("./main.go")
+// 		if err != nil {
+// 			panic("cannot find tar")
+// 		}
+//
+// 		def.Tasks[i].Exe = reader
+// 	}
+// 	return def, nil
+// }

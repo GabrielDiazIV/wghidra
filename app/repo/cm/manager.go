@@ -12,8 +12,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (cm *containerManager) PullImage(ctx context.Context, image string) error {
-	out, err := cm.cli.ImagePull(ctx, image, api.ImagePullOptions{})
+func (cm *containerManager) PullImage(ctx context.Context) error {
+	out, err := cm.cli.ImagePull(ctx, image_name, api.ImagePullOptions{})
 	if err != nil {
 		return errors.Wrap(err, "DOCKER PULL")
 	}
@@ -41,10 +41,10 @@ func (cm *containerManager) PullImage(ctx context.Context, image string) error {
 	return nil
 }
 
-func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTask) (string, error) {
+func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTask, exeStream io.Reader) (string, error) {
 	config := &container.Config{
 		Image: image_name,
-		Cmd:   task.Command,
+		Cmd:   task.Task.Cmd(),
 	}
 
 	res, err := cm.cli.ContainerCreate(ctx, config, &container.HostConfig{}, nil, nil, task.Name)
@@ -53,7 +53,7 @@ func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTas
 	}
 
 	if err := cm.cli.CopyToContainer(
-		ctx, res.ID, "/", task.Exe,
+		ctx, res.ID, "/", exeStream,
 		api.CopyToContainerOptions{AllowOverwriteDirWithFile: true}); err != nil {
 		fmt.Println("cannot copy file: ", err)
 		return "", err

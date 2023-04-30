@@ -29,9 +29,10 @@ func (w *wghidra) PyRun(ctx context.Context, executeFunction string, paramters [
 	}
 
 	def := bo.TaskDefinition{
-		Tasks: []bo.UnitTask{bo.NewRunTask(&tarBuf, argv)},
+		Tasks: []bo.UnitTask{bo.NewRunTask(argv)},
 	}
 
+	def.Exe = &tarBuf
 	res := w.dokr.Run(ctx, def)
 	return res, nil
 }
@@ -39,25 +40,23 @@ func (w *wghidra) PyRun(ctx context.Context, executeFunction string, paramters [
 // ParseProject implements defs.WGhidra
 func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, []bo.Function, string, error) {
 
-	// duplicate buffer
-	var taskBuf bytes.Buffer
-	storeReader := io.TeeReader(fstream, &taskBuf)
-
-	// create id
 	id := uuid.New().String()
 
-	exeBuf, err := system.ToTar(storeReader, id)
-	_, err = w.store.PostExe(ctx, id, &exeBuf)
-	if err != nil {
-		log.Errorf("could not upload exe: %v", err)
-		return "", nil, "", err
-	}
+	exeBuf, err := system.ToTar(fstream, id)
+	readers := system.GetReaders(&exeBuf, 2)
 
-	// create decompile task
+	go func(rdr io.Reader) {
+		_, err = w.store.PostExe(ctx, id, rdr)
+		if err != nil {
+			log.Errorf("could not upload exe: %v", err)
+		}
+	}(readers[0])
+
 	defs := bo.TaskDefinition{
+		Exe: readers[1],
 		Tasks: []bo.UnitTask{
-			bo.NewDecompileTask(&taskBuf),
-			bo.NewDissasemblyTask(&taskBuf),
+			bo.NewDecompileTask(),
+			bo.NewDissasemblyTask(),
 		},
 	}
 
@@ -96,6 +95,7 @@ func (w *wghidra) RunScripts(ctx context.Context, projectId string, def bo.TaskD
 		return nil, err
 	}
 
+	def.Exe = fstream
 	defer fstream.Close()
 
 	return w.dokr.Run(ctx, def), nil

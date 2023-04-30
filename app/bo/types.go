@@ -13,8 +13,7 @@ type TaskDefinition struct {
 type UnitTask struct {
 	Name    string `yaml:"name,omitempty"    json:"name,omitempty"`
 	Task    ScriptTask
-	Cleanup bool      `yaml:"cleanup,omitempty" json:"cleanup,omitempty"`
-	Exe     io.Reader `yaml:"-"                 json:"-"`
+	Cleanup bool `yaml:"cleanup,omitempty" json:"cleanup,omitempty"`
 }
 
 type ScriptTask struct {
@@ -65,44 +64,51 @@ const (
 	RunTaskName        = "Run"
 )
 
-func NewScriptTask(name string, fstream io.Reader, task ScriptTask) UnitTask {
+func NewScriptTask(name string, task ScriptTask) UnitTask {
 	return UnitTask{
 		Name:    name,
 		Cleanup: true,
-		Exe:     fstream,
 		Task:    task,
 	}
 }
 
-func NewDecompileTask(fstream io.Reader) UnitTask {
+func NewDecompileTask() UnitTask {
 	return UnitTask{
 		Name:    DecompileTaskName,
 		Cleanup: true,
-		Exe:     fstream,
 		Task: ScriptTask{
 			ScriptName: "extract.py",
 		},
 	}
 }
-func NewDissasemblyTask(fstream io.Reader) UnitTask {
+func NewDissasemblyTask() UnitTask {
 	return UnitTask{
 		Name:    DissasmbleTaskName,
 		Cleanup: true,
-		Exe:     fstream,
 		Task: ScriptTask{
 			ScriptName: "dissasmbly",
 		},
 	}
 }
 
-func NewRunTask(fstream io.Reader, paramters []string) UnitTask {
+func NewRunTask(paramters []string) UnitTask {
 	return UnitTask{
 		Name:    RunTaskName,
 		Cleanup: true,
-		Exe:     fstream,
 		Task: ScriptTask{
 			ScriptName: "run.py",
 			Parameters: paramters,
 		},
 	}
+}
+
+func (st ScriptTask) Cmd() []string {
+
+	argv := make([]string, len(st.Parameters)+1)
+	argv[0] = st.ScriptName
+	for i, arg := range st.Parameters {
+		argv[i+1] = arg
+	}
+
+	return argv
 }

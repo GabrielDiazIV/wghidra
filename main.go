@@ -6,9 +6,9 @@ import (
 	"io"
 	"log"
 
+	"github.com/gabrieldiaziv/wghidra/app/bo/iface"
 	"github.com/gabrieldiaziv/wghidra/app/repo/cm"
 	"github.com/gabrieldiaziv/wghidra/app/repo/dokr"
-	"github.com/gabrieldiaziv/wghidra/app/repo/store"
 	"github.com/gabrieldiaziv/wghidra/app/srvc/wghidra"
 	"github.com/google/uuid"
 )
@@ -25,9 +25,8 @@ func NewMockStore() iface.Store {
 	}
 }
 
-func (s *mockstore) PostExe(ctx context.Context, stream io.Reader) (string, error) {
+func (s *mockstore) PostExe(ctx context.Context, id string, stream io.Reader) (string, error) {
 
-	id := uuid.New().String()
 	data, err := io.ReadAll(stream)
 	if err != nil {
 		log.Fatal("could not read")
@@ -48,7 +47,7 @@ func (s *mockstore) GetExe(ctx context.Context, id string) (io.ReadCloser, error
 	return reader, nil
 
 }
-func (s *mockstore) PostDecompiled(ctx context.Context, stream io.Reader) (string, error) {
+func (s *mockstore) PostDecompiled(ctx context.Context, id string, stream io.Reader) (string, error) {
 	panic("not implemented") // TODO: Implement
 }
 
@@ -58,8 +57,12 @@ func main() {
 		log.Fatalf("could not create cli: %v", err)
 	}
 
-	g := wghidra.NewWGhidra(
+	W := wghidra.NewWGhidra(
 		dokr.NewRunner(cm.NewContainerManager(cli)),
+		NewMockStore(),
 	)
+
+	ctx := context.Background()
+	W.ParseProject(ctx)
 
 }

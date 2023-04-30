@@ -58,7 +58,7 @@ func Unwrap(key string) string {
 }
 
 func init() {
-	loadDotEnv()
-	loadEnv()
+	// loadDotEnv()
+	// loadEnv()
 
 }

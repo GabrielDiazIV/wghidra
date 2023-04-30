@@ -7,33 +7,20 @@ import (
 	"io"
 
 	"github.com/gabrieldiaziv/wghidra/app/bo"
+	"github.com/gabrieldiaziv/wghidra/app/system"
 	"github.com/labstack/gommon/log"
 )
 
-// func getReaders(source io.Reader, count int) ([]io.Reader, io.Closer) {
-//   readers := make([]io.Reader, 0, count)
-//   pipeWriters := make([]io.Writer, 0, count)
-//   pipeClosers := make([]io.Closer, 0, count)
-// 	for i := 0; i < count-1; i++ {
-//
-//     pr, pw := io.Pipe()
-//     readers = append(readers, pr)
-//     pipeWriters = append(pipeWriters, pw)
-//     pipeClosers = append(pipeClosers, pw)
-//   }  multiWriter := io.MultiWriter(pipeWriters...)
-//
-//   teeReader := io.TeeReader(source, multiWriter)  // append teereader so it populates data to the rest of the readers
-//   readers = append([]io.Reader{teeReader}, readers...)
-//   return readers, NewMultiCloser(pipeClosers)
-// }
-
-func (r *runner) Run(ctx context.Context, def bo.TaskDefinition, src io.Reader) []bo.TaskResult {
+func (r *runner) Run(ctx context.Context, def bo.TaskDefinition) []bo.TaskResult {
 
 	res := make([]bo.TaskResult, len(def.Tasks))
 	resCh := make(chan bo.TaskResult, len(def.Tasks))
+	readers := system.GetReaders(def.Exe, len(def.Tasks))
 
-	for _, task := range def.Tasks {
-		go r.runTask(ctx, task, resCh)
+	for i := range def.Tasks {
+		go func(tsk bo.UnitTask, rdr io.Reader) {
+			r.runTask(ctx, tsk, resCh, rdr)
+		}(def.Tasks[i], readers[i])
 	}
 
 	for i := range def.Tasks {
@@ -43,15 +30,15 @@ func (r *runner) Run(ctx context.Context, def bo.TaskDefinition, src io.Reader) 
 	return res
 }
 
-func (r *runner) runTask(ctx context.Context, task bo.UnitTask, resCh chan<- bo.TaskResult) {
+func (r *runner) runTask(ctx context.Context, task bo.UnitTask, resCh chan<- bo.TaskResult, exeStream io.Reader) {
 
 	fmt.Println("preparing tasks - ", task.Name)
-	if err := r.containerManager.PullImage(ctx, task.Runner); err != nil {
+	if err := r.containerManager.PullImage(ctx); err != nil {
 		resCh <- bo.TaskFailed(task, 0, "PULL_IMAGE")
 		return
 	}
 
-	id, err := r.containerManager.CreateContainer(ctx, task)
+	id, err := r.containerManager.CreateContainer(ctx, task, exeStream)
 	if err != nil {
 		log.Errorf("creating task: %v", err)
 		resCh <- bo.TaskFailed(task, 1, "CREATE_CONTAINER")
