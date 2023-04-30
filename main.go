@@ -1,16 +1,65 @@
 package main
 
-func main() {
-	ch := make(chan int)
+import (
+	"bytes"
+	"context"
+	"io"
+	"log"
 
-	go worker(ch)
-	for _ = range ch {
+	"github.com/gabrieldiaziv/wghidra/app/repo/cm"
+	"github.com/gabrieldiaziv/wghidra/app/repo/dokr"
+	"github.com/gabrieldiaziv/wghidra/app/repo/store"
+	"github.com/gabrieldiaziv/wghidra/app/srvc/wghidra"
+	"github.com/google/uuid"
+)
 
+type mockstore struct {
+	exe map[string][]byte
+	dec map[string][]byte
+}
+
+func NewMockStore() iface.Store {
+	return &mockstore{
+		exe: make(map[string][]byte),
+		dec: make(map[string][]byte),
 	}
 }
 
-func worker(ch <-chan int) {
-	for {
-		select {}
+func (s *mockstore) PostExe(ctx context.Context, stream io.Reader) (string, error) {
+
+	id := uuid.New().String()
+	data, err := io.ReadAll(stream)
+	if err != nil {
+		log.Fatal("could not read")
 	}
+	s.exe[id] = data
+	return id, nil
+}
+func (s *mockstore) GetDecompiled(ctx context.Context, id string) (io.ReadCloser, error) {
+	panic("not implemented") // TODO: Implement
+}
+func (s *mockstore) GetExe(ctx context.Context, id string) (io.ReadCloser, error) {
+	data, ok := s.exe[id]
+	if !ok {
+		log.Fatal("could not find exe")
+	}
+
+	reader := io.NopCloser(bytes.NewReader(data))
+	return reader, nil
+
+}
+func (s *mockstore) PostDecompiled(ctx context.Context, stream io.Reader) (string, error) {
+	panic("not implemented") // TODO: Implement
+}
+
+func main() {
+	cli, err := cm.NewDockerClient()
+	if err != nil {
+		log.Fatalf("could not create cli: %v", err)
+	}
+
+	g := wghidra.NewWGhidra(
+		dokr.NewRunner(cm.NewContainerManager(cli)),
+	)
+
 }

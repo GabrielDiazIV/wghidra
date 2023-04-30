@@ -1,20 +1,26 @@
 package gapi
 
 import (
-	"net/http"
-
-	"github.com/gabrieldiaziv/wghidra/app/bo"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
 )
 
-func (g *gapi) postJobs(c echo.Context) error {
+func (g *gapi) addRoutes() {
+	grp := g.e.Group("/api")
 
-	var def bo.TaskDefinition
-	if err := c.Bind(&def); err != nil {
-		log.Errorf("extract task %v", err)
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"err": err.Error(),
-		})
-	}
+	g.postProjectRouter(grp)
+	g.postScriptsRouter(grp)
+	g.postRunRouter(grp)
+
+}
+
+func (g *gapi) postProjectRouter(grp *echo.Group) {
+	grp.POST("/project", g.postProject)
+}
+
+func (g *gapi) postScriptsRouter(grp *echo.Group) {
+	grp.POST("/scripts", g.postScripts)
+}
+
+func (g *gapi) postRunRouter(grp *echo.Group) {
+	grp.POST("/run", g.postRun)
 }

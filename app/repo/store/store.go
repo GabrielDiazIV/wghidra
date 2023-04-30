@@ -23,8 +23,7 @@ func (s *storeS3) getObject(ctx context.Context, bucket string, key string) (io.
 	return res.Body, nil
 }
 
-func (s *storeS3) putObject(ctx context.Context, bucket string, stream io.ReadCloser) (string, error) {
-	key := uuid.New().String()
+func (s *storeS3) putObject(ctx context.Context, key string, bucket string, stream io.Reader) (string, error) {
 
 	_, err := s.svc.PutObjectWithContext(ctx, &s3.PutObjectInput{
 		Body:         nil,
@@ -44,12 +43,12 @@ func (s *storeS3) putObject(ctx context.Context, bucket string, stream io.ReadCl
 func (s *storeS3) GetExe(ctx context.Context, id string) (io.ReadCloser, error) {
 	return s.getObject(ctx, system.Unwrap(system.ENV.AWS.ExeBucket), id)
 }
-func (s *storeS3) PostExe(ctx context.Context, stream io.ReadCloser) (string, error) {
-	return s.putObject(ctx, system.Unwrap(system.ENV.AWS.ExeBucket), stream)
+func (s *storeS3) PostExe(ctx context.Context, id string, stream io.Reader) (string, error) {
+	return s.putObject(ctx, id, system.Unwrap(system.ENV.AWS.ExeBucket), stream)
 }
 func (s *storeS3) GetDecompiled(ctx context.Context, id string) (io.ReadCloser, error) {
 	return s.getObject(ctx, system.Unwrap(system.ENV.AWS.DecBucket), id)
 }
-func (s *storeS3) PostDecompiled(ctx context.Context, stream io.ReadCloser) (string, error) {
-	return s.putObject(ctx, system.Unwrap(system.ENV.AWS.DecBucket), stream)
+func (s *storeS3) PostDecompiled(ctx context.Context, id string, stream io.Reader) (string, error) {
+	return s.putObject(ctx, id, system.Unwrap(system.ENV.AWS.DecBucket), stream)
 }

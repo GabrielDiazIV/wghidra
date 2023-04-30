@@ -43,7 +43,7 @@ func (cm *containerManager) PullImage(ctx context.Context, image string) error {
 
 func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTask) (string, error) {
 	config := &container.Config{
-		Image: task.Runner,
+		Image: image_name,
 		Cmd:   task.Command,
 	}
 
@@ -52,7 +52,9 @@ func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTas
 		return "", nil
 	}
 
-	if err := cm.cli.CopyToContainer(ctx, res.ID, "/", task.Exe, api.CopyToContainerOptions{AllowOverwriteDirWithFile: true}); err != nil {
+	if err := cm.cli.CopyToContainer(
+		ctx, res.ID, "/", task.Exe,
+		api.CopyToContainerOptions{AllowOverwriteDirWithFile: true}); err != nil {
 		fmt.Println("cannot copy file: ", err)
 		return "", err
 	}
