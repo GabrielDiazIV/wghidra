@@ -13,12 +13,12 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
-func (w *wghidra) PyRun(ctx context.Context, executeFunction string, paramters []string, functions string) (bo.TaskResult, error) {
+func (w *wghidra) PyRun(ctx context.Context, executeFunction string, paramters []string, functions string) ([]bo.TaskResult, error) {
 
 	fnsReader := strings.NewReader(functions)
 	tarBuf, err := system.ToTar(fnsReader, "functions.json")
 	if err != nil {
-		return bo.TaskResult{}, err
+		return nil, err
 	}
 
 	// make argv {functionName, param1, param2, ...}
@@ -29,15 +29,15 @@ func (w *wghidra) PyRun(ctx context.Context, executeFunction string, paramters [
 	}
 
 	def := bo.TaskDefinition{
-		Tasks: []bo.UnitTask{bo.NewRunTask("run", &tarBuf, argv)},
+		Tasks: []bo.UnitTask{bo.NewRunTask(&tarBuf, argv)},
 	}
 
 	res := w.dokr.Run(ctx, def)
-	return res[0], nil
+	return res, nil
 }
 
 // ParseProject implements defs.WGhidra
-func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, []bo.Function, error) {
+func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, []bo.Function, string, error) {
 
 	// duplicate buffer
 	var taskBuf bytes.Buffer
@@ -50,39 +50,53 @@ func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, 
 	_, err = w.store.PostExe(ctx, id, &exeBuf)
 	if err != nil {
 		log.Errorf("could not upload exe: %v", err)
-		return "", nil, err
+		return "", nil, "", err
 	}
 
 	// create decompile task
 	defs := bo.TaskDefinition{
-		Tasks: []bo.UnitTask{bo.NewDecompileTask("id", &taskBuf)},
+		Tasks: []bo.UnitTask{
+			bo.NewDecompileTask(&taskBuf),
+			bo.NewDissasemblyTask(&taskBuf),
+		},
 	}
 
 	// run decompile task
 	res := w.dokr.Run(ctx, defs)
 
+	var dec *json.Decoder
+	var assembly string
+
 	// create decoder using result
-	dec := json.NewDecoder(strings.NewReader(res[0].Output))
+
+	if res[0].Name == bo.DecompileTaskName {
+		dec = json.NewDecoder(strings.NewReader(res[0].Output))
+		assembly = res[1].Output
+	} else {
+		dec = json.NewDecoder(strings.NewReader(res[1].Output))
+		assembly = res[0].Output
+	}
 
 	// decode result
 	var fns []bo.Function
 	if err := dec.Decode(&fns); err != nil {
 		log.Errorf("could not decode fns: %v", err)
-		return "", nil, err
+		return "", nil, "", err
 	}
 
-	return id, fns, nil
+	return id, fns, assembly, nil
 }
 
 // RunScripts implements defs.WGhidra
-func (w *wghidra) RunScripts(ctx context.Context, projectId string, def bo.TaskDefinition) (bo.TaskResult, error) {
+func (w *wghidra) RunScripts(ctx context.Context, projectId string, def bo.TaskDefinition) ([]bo.TaskResult, error) {
 
 	fstream, err := w.store.GetExe(ctx, projectId)
 	if err != nil {
 		log.Errorf("could not find project: %v", err)
-		return bo.TaskResult{}, err
+		return nil, err
 	}
 
 	defer fstream.Close()
 
+	return w.dokr.Run(ctx, def), nil
 }

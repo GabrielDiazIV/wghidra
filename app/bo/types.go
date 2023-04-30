@@ -6,6 +6,7 @@ import (
 
 type TaskDefinition struct {
 	Version string     `yaml:"version,omitempty" json:"version,omitempty"`
+	Exe     io.Reader  `yaml:"-"                 json:"-"`
 	Tasks   []UnitTask `yaml:"tasks,omitempty"   json:"tasks,omitempty"`
 }
 
@@ -23,8 +24,6 @@ type ScriptTask struct {
 
 type TaskResult struct {
 	Name   string     `yaml:"name,omitempty"    json:"name,omitempty"`
-	ID     string     `yaml:"id,omitempty"      json:"id,omitempty"`
-	Link   string     `yaml:"link,omitempty"      json:"link,omitempty"`
 	Output string     `yaml:"output,omitempty"      json:"output,omitempty"`
 	Error  *TaskError `json:"error,omitempty"`
 }
@@ -43,7 +42,6 @@ type Function struct {
 func TaskFailed(ut UnitTask, code int, msg string) TaskResult {
 	return TaskResult{
 		Name: ut.Name,
-		ID:   ut.ID,
 		Error: &TaskError{
 			Code: code,
 			Msg:  msg,
@@ -61,11 +59,11 @@ type ImagePullStatus struct {
 	} `json:"progressDetail,omitempty"`
 }
 
-func Script2Command(st ScriptTask) []string {
-	cmd := []string{st.ScriptName}
-	cmd = append(cmd, st.Parameters...)
-	return cmd
-}
+const (
+	DecompileTaskName  = "Decompile"
+	DissasmbleTaskName = "Dissasmble"
+	RunTaskName        = "Run"
+)
 
 func NewScriptTask(name string, fstream io.Reader, task ScriptTask) UnitTask {
 	return UnitTask{
@@ -76,9 +74,9 @@ func NewScriptTask(name string, fstream io.Reader, task ScriptTask) UnitTask {
 	}
 }
 
-func NewDecompileTask(name string, fstream io.Reader) UnitTask {
+func NewDecompileTask(fstream io.Reader) UnitTask {
 	return UnitTask{
-		Name:    name,
+		Name:    DecompileTaskName,
 		Cleanup: true,
 		Exe:     fstream,
 		Task: ScriptTask{
@@ -86,10 +84,20 @@ func NewDecompileTask(name string, fstream io.Reader) UnitTask {
 		},
 	}
 }
-
-func NewRunTask(name string, fstream io.Reader, paramters []string) UnitTask {
+func NewDissasemblyTask(fstream io.Reader) UnitTask {
 	return UnitTask{
-		Name:    name,
+		Name:    DissasmbleTaskName,
+		Cleanup: true,
+		Exe:     fstream,
+		Task: ScriptTask{
+			ScriptName: "dissasmbly",
+		},
+	}
+}
+
+func NewRunTask(fstream io.Reader, paramters []string) UnitTask {
+	return UnitTask{
+		Name:    RunTaskName,
 		Cleanup: true,
 		Exe:     fstream,
 		Task: ScriptTask{

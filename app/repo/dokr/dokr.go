@@ -10,22 +10,22 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
-func getReaders(source io.Reader, count int) ([]io.Reader, io.Closer) {
-  readers := make([]io.Reader, 0, count)
-  pipeWriters := make([]io.Writer, 0, count)
-  pipeClosers := make([]io.Closer, 0, count)
-	for i := 0; i < count-1; i++ {
-
-    pr, pw := io.Pipe()
-    readers = append(readers, pr)
-    pipeWriters = append(pipeWriters, pw)
-    pipeClosers = append(pipeClosers, pw)
-  }  multiWriter := io.MultiWriter(pipeWriters...)
-
-  teeReader := io.TeeReader(source, multiWriter)  // append teereader so it populates data to the rest of the readers
-  readers = append([]io.Reader{teeReader}, readers...)
-  return readers, NewMultiCloser(pipeClosers)
-}
+// func getReaders(source io.Reader, count int) ([]io.Reader, io.Closer) {
+//   readers := make([]io.Reader, 0, count)
+//   pipeWriters := make([]io.Writer, 0, count)
+//   pipeClosers := make([]io.Closer, 0, count)
+// 	for i := 0; i < count-1; i++ {
+//
+//     pr, pw := io.Pipe()
+//     readers = append(readers, pr)
+//     pipeWriters = append(pipeWriters, pw)
+//     pipeClosers = append(pipeClosers, pw)
+//   }  multiWriter := io.MultiWriter(pipeWriters...)
+//
+//   teeReader := io.TeeReader(source, multiWriter)  // append teereader so it populates data to the rest of the readers
+//   readers = append([]io.Reader{teeReader}, readers...)
+//   return readers, NewMultiCloser(pipeClosers)
+// }
 
 func (r *runner) Run(ctx context.Context, def bo.TaskDefinition, src io.Reader) []bo.TaskResult {
 
