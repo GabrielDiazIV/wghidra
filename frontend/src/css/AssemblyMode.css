@@ -1,0 +1,27 @@
+.runner-mode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+  
+  .assembly-mode__textbox-container {
+    width: 90%;
+    height: 75vh;
+    border-radius: 10px;
+  }
+  
+  .assembly-mode__textbox {
+    width: 100%;
+    min-height: 15vh;
+    font-family: 'Fira Code', monospace;
+    font-size: 16px;
+    background-color: #f1f1f1;
+    color: #333;
+    border-radius: 20px;
+    border: none;
+    padding: 1rem;
+    resize: none;
+    overflow: hidden;
+    white-space: pre-line;
+  }
