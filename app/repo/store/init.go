@@ -1,8 +1,6 @@
 package store
 
 import (
-	"context"
-
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gabrieldiaziv/wghidra/app/bo/iface"
@@ -17,7 +15,7 @@ type storeS3 struct {
 	svc  *s3.S3
 }
 
-func NewStore(ctx context.Context) iface.Store {
+func NewStore() iface.Store {
 	sess := session.Must(session.NewSession())
 	svc := s3.New(sess)
 

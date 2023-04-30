@@ -24,8 +24,3 @@ func (g *gapi) Start() {
 	g.addRoutes()
 	g.e.Logger.Fatal(g.e.Start(g.port))
 }
-
-func (g *gapi) addRoutes() {
-	grp := g.e.Group("api")
-	grp.POST("jobs", g.postJobs)
-}

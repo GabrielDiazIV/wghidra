@@ -5,6 +5,10 @@ import (
 	"github.com/gabrieldiaziv/wghidra/app/bo/iface"
 )
 
+const (
+	image_name = "wghidra"
+)
+
 type containerManager struct {
 	cli iface.DockerClient
 }

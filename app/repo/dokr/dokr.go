@@ -1,13 +1,33 @@
 package dokr
 
 import (
+	"archive/tar"
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/gabrieldiaziv/wghidra/app/bo"
+	"github.com/labstack/gommon/log"
 )
 
-func (r *runner) Run(ctx context.Context, def bo.TaskDefinition) []bo.TaskResult {
+func getReaders(source io.Reader, count int) ([]io.Reader, io.Closer) {
+  readers := make([]io.Reader, 0, count)
+  pipeWriters := make([]io.Writer, 0, count)
+  pipeClosers := make([]io.Closer, 0, count)
+	for i := 0; i < count-1; i++ {
+
+    pr, pw := io.Pipe()
+    readers = append(readers, pr)
+    pipeWriters = append(pipeWriters, pw)
+    pipeClosers = append(pipeClosers, pw)
+  }  multiWriter := io.MultiWriter(pipeWriters...)
+
+  teeReader := io.TeeReader(source, multiWriter)  // append teereader so it populates data to the rest of the readers
+  readers = append([]io.Reader{teeReader}, readers...)
+  return readers, NewMultiCloser(pipeClosers)
+}
+
+func (r *runner) Run(ctx context.Context, def bo.TaskDefinition, src io.Reader) []bo.TaskResult {
 
 	res := make([]bo.TaskResult, len(def.Tasks))
 	resCh := make(chan bo.TaskResult, len(def.Tasks))
@@ -33,14 +53,14 @@ func (r *runner) runTask(ctx context.Context, task bo.UnitTask, resCh chan<- bo.
 
 	id, err := r.containerManager.CreateContainer(ctx, task)
 	if err != nil {
-		fmt.Println(err)
+		log.Errorf("creating task: %v", err)
 		resCh <- bo.TaskFailed(task, 1, "CREATE_CONTAINER")
 		return
 	}
 
 	fmt.Println("starting task - ", task.Name)
 	if err = r.containerManager.StartContainer(ctx, id); err != nil {
-		fmt.Println(err)
+		log.Errorf("starting task: %v", err)
 		resCh <- bo.TaskFailed(task, 2, "START_CONTAINER")
 		return
 	}
@@ -50,7 +70,7 @@ func (r *runner) runTask(ctx context.Context, task bo.UnitTask, resCh chan<- bo.
 	fmt.Println("waiting task - ", task.Name)
 	statusSucess, err := r.containerManager.WaitForContainer(ctx, id)
 	if err != nil {
-		fmt.Println(err)
+		log.Errorf("wait for task: %v", err)
 		resCh <- bo.TaskFailed(task, 3, "WAIT_CONTAINER")
 		return
 	}
@@ -60,15 +80,30 @@ func (r *runner) runTask(ctx context.Context, task bo.UnitTask, resCh chan<- bo.
 		stream, err := r.containerManager.CopyTarOutput(ctx, id)
 
 		if err != nil {
-			fmt.Println(err)
+			log.Errorf("copy tar: %v", err)
 			resCh <- bo.TaskFailed(task, 4, "COPY_TAR")
 			return
 		}
 
+		defer stream.Close()
+
+		tarStream := tar.NewReader(stream)
+		header, err := tarStream.Next()
+		if err != nil {
+			log.Errorf("stream next: %v", err)
+			resCh <- bo.TaskFailed(task, 4, "HEADER_TAR")
+		}
+
+		data := make([]byte, header.Size)
+		if _, err = io.ReadFull(tarStream, data); err != nil {
+			log.Errorf("could not read: %v", err)
+			resCh <- bo.TaskFailed(task, 4, "READ_TAR")
+		}
+
 		resCh <- bo.TaskResult{
-			Name:      task.Name,
-			TarStream: stream,
-			Error:     nil,
+			Name:   task.Name,
+			Output: string(data),
+			Error:  nil,
 		}
 	}
 }
