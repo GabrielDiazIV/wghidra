@@ -6,7 +6,8 @@ function App() {
   const [screen, setScreen] = useState('landing');
   const [status, setStatus] = useState('start');
   const [transition, setTransition] = useState('');
-  const [file, setFile] = useState('');
+  const [assembly, setAssembly] = useState('');
+  const [projectId, setProjectID] = useState('');
   const [functionList, setFunctionList] = useState([])
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -33,13 +34,12 @@ function App() {
   }
 
   const handleFileSelect = async(file)  => {
-    setFile(file);
     setStatus('loading');
 
     const formData = new FormData();
     formData.append('file', file);
   
-    fetch('/api/upload', {
+    fetch('/api/project', {
       method: 'POST',
       body: formData
     })
@@ -47,11 +47,13 @@ function App() {
       if(response.ok) {
         const data = await response.json();
         setFunctionList(data.functions);
+        setAssembly(data.asm);
+        setProjectID(data.projectId);
         transitionScreens('success');
       }
       else {
         const data = await response.json();
-        setErrorMessage(data.error);
+        setErrorMessage(data.error.message);
         transitionScreens('fail');
       }
     })
@@ -61,7 +63,7 @@ function App() {
     });
   }
 
-  let content = screen === 'landing' ? <LandingPage status={status} error={errorMessage} transition={transition} onFileSelect={(file) => {handleFileSelect(file)}}/> : <MainPage homeHandler={homeHandler}/>;
+  let content = screen === 'landing' ? <LandingPage status={status} error={errorMessage} transition={transition} onFileSelect={(file) => {handleFileSelect(file)}}/> : <MainPage projectId={projectId} homeHandler={homeHandler} functionList={functionList} assembly={assembly}/>;
   return (
     <div>
       {content}

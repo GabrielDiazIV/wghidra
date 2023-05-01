@@ -6,7 +6,7 @@ import '../css/RunnerMode.css';
 
 
 function RunnerMode(props) {
-    const {params } = props;
+    const {params, name } = props;
   const [body, setBody] = useState(props.body);
   const [exebody, setExeBody] = useState(props.body);
   const [output, setOutput] = useState('');
@@ -19,9 +19,22 @@ function RunnerMode(props) {
     setIsLoading(true);
     try {
       // use
-      const response = await fetch(`https://example.com/api/${textValues}`);
-      const data = await response.text();
-      setOutput(data);
+      const requestBody = {
+        functionList: body,
+        executeFunction: name,
+        parameters: textValues
+      };
+      
+      const response = await fetch(`https://example.com/api/scripts`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await response.json();
+      setOutput(data.results);
       textAreaRef.current.scrollIntoView({ behavior: 'smooth' });
     } catch (error) {
       console.error(error);
@@ -40,7 +53,7 @@ function RunnerMode(props) {
   };
 
   function bodyChange(newValue) {
-    props.onBodyChange(props.name, newValue);
+    props.onBodyChange(name, newValue);
   }
 
   // run when body changes
@@ -49,7 +62,7 @@ function RunnerMode(props) {
     setOutput('');
     setIsLoading(false);
     setBody(props.body);
-  }, [props.name]);
+  }, [name]);
 
   return (
     <div className="runner-mode">

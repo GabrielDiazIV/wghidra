@@ -8,7 +8,7 @@ import RunnerMode from '../components/RunnerMode.tsx'
 import AssemblyMode from '../components/AssemblyMode.tsx'
 
 function MainPage(props) {
-  const { functionList, assembly } = props;
+  const { functionList, assembly, projectId } = props;
 
   const TODOcode = assembly ? assembly : `
   section .text
@@ -121,13 +121,13 @@ function MainPage(props) {
 
   let mainComponent;
   if (selectedMode === 'script') {
-    mainComponent = <ScriptMode body={selectedFunction.body}/>
+    mainComponent = <ScriptMode projectId={projectId} body={selectedFunction.body}/>
   }
   else if(selectedMode === 'runner') {
-    mainComponent = <RunnerMode name={runnableFunction.name} onBodyChange={handleRunnableBodyChange} body={runnableFunction.body} params={['String', 'int', 'int']}/> 
+    mainComponent = <RunnerMode projectId={projectId} name={runnableFunction.name} onBodyChange={handleRunnableBodyChange} body={runnableFunction.body} params={['String', 'int', 'int']}/> 
   }
   else if (selectedMode === 'assembly') {
-    mainComponent = <AssemblyMode body={TODOcode}/>
+    mainComponent = <AssemblyMode projectId={projectId} body={TODOcode} />
   }
 
   return (
