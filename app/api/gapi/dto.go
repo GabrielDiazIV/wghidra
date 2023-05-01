@@ -22,17 +22,17 @@ type project_in struct {
 }
 
 type project_out struct {
-	Functions []bo.Function `json:"functions,omitempty"`
+	Functions []interface{} `json:"functions,omitempty"`
 	ProjectID string        `json:"project_id,omitempty"`
 	Assembly  string        `json:"assembly,omitempty"`
 }
 
 type scripts_in struct {
-	ProjectID string `json:"project_id,omitempty"`
-	Scripts   []bo.ScriptTask
+	ProjectID string          `json:"project_id,omitempty"`
+	Scripts   []bo.ScriptTask `json:"scripts,omitempty"`
 }
 type scripts_out struct {
-	Results []bo.TaskResult
+	Results []bo.TaskResult `json:"results,omitempty"`
 }
 
 type run_in struct {
@@ -65,7 +65,7 @@ func Scripts2Def(projectID string, scripts []bo.ScriptTask) bo.TaskDefinition {
 	uts := make([]bo.UnitTask, len(scripts))
 	for i, script := range scripts {
 
-		ut := bo.NewScriptTask(name)
+		ut := bo.UnitTask{}
 		ut.Name = strings.Join([]string{projectID, script.ScriptName}, "-")
 		ut.Task = script
 		uts[i] = ut

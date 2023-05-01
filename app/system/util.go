@@ -26,9 +26,11 @@ func Decode[T any](reader io.Reader) (T, error) {
 	return msg, err
 }
 
-func ToTar(fstream io.Reader, name string) (bytes.Buffer, error) {
+func ToDockerTar(fstream io.Reader, name string) (bytes.Buffer, error) {
 
 	var buf bytes.Buffer
+
+	// gzipW := gzip.NewWriter(&buf)
 	tarW := tar.NewWriter(&buf)
 
 	//read  all data
@@ -94,6 +96,7 @@ func GetReaders(srcReader io.Reader, size int) []io.Reader {
 	go func() {
 		io.Copy(multiWriter, srcReader)
 		multiCloser.Close()
+		log.Infof("MULTI CLOSER CLOSED")
 	}()
 
 	return readers

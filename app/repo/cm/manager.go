@@ -1,10 +1,13 @@
 package cm
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
-	"github.com/labstack/gommon/log"
+	"fmt"
 	"io"
+
+	"github.com/labstack/gommon/log"
 
 	api "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -43,9 +46,14 @@ func (cm *containerManager) PullImage(ctx context.Context) error {
 
 func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTask, inputStream io.Reader) (string, error) {
 	config := &container.Config{
-		Image: image_name,
-		Cmd:   task.Task.Cmd(),
+		Image:        image_name,
+		Cmd:          task.Task.Cmd(),
+		Tty:          true,
+		AttachStdout: true,
+		AttachStderr: true,
 	}
+
+	log.Infof("CREATING CMD: %v", task.Task.Cmd())
 
 	res, err := cm.cli.ContainerCreate(ctx, config, &container.HostConfig{}, nil, nil, task.Name)
 	if err != nil {
@@ -53,7 +61,7 @@ func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTas
 	}
 
 	if err := cm.cli.CopyToContainer(
-		ctx, res.ID, "/input/", inputStream,
+		ctx, res.ID, "/container/input/", inputStream,
 		api.CopyToContainerOptions{AllowOverwriteDirWithFile: true}); err != nil {
 		log.Errorf("cannot copy file: ", err)
 		return "", err
@@ -63,11 +71,29 @@ func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTas
 }
 
 func (cm *containerManager) StartContainer(ctx context.Context, id string) error {
+	go func() {
+		reader, err := cm.cli.ContainerLogs(context.Background(), id, api.ContainerLogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,
+			Follow:     true,
+			Timestamps: false,
+		})
+		if err != nil {
+			panic(err)
+		}
+		defer reader.Close()
+
+		scanner := bufio.NewScanner(reader)
+		for scanner.Scan() {
+			fmt.Println(scanner.Text())
+		}
+	}()
+
 	return cm.cli.ContainerStart(ctx, id, api.ContainerStartOptions{})
 }
 
 func (cm *containerManager) CopyTarOutput(ctx context.Context, id string) (io.ReadCloser, error) {
-	tarStream, _, err := cm.cli.CopyFromContainer(ctx, id, "output/output.json")
+	tarStream, _, err := cm.cli.CopyFromContainer(ctx, id, "/container/output/output.json")
 	if err != nil {
 		return nil, err
 	}

@@ -23,6 +23,7 @@ func (r *runner) Run(ctx context.Context, def bo.TaskDefinition) []bo.TaskResult
 	}
 
 	for i := range def.Tasks {
+		log.Infof("waiting for task: %d\n", i)
 		res[i] = <-resCh
 	}
 
@@ -31,22 +32,24 @@ func (r *runner) Run(ctx context.Context, def bo.TaskDefinition) []bo.TaskResult
 
 func (r *runner) runTask(ctx context.Context, task bo.UnitTask, resCh chan<- bo.TaskResult, inputStream io.Reader) {
 
-	log.Infof("preparing tasks - ", task.Name)
-	if err := r.containerManager.PullImage(ctx); err != nil {
-		resCh <- bo.TaskFailed(task, 0, "PULL_IMAGE")
-		return
-	}
+	// log.Infof("preparing tasks - ", task.Name)
+	// if err := r.containerManager.PullImage(ctx); err != nil {
+	// 	log.Errorf("Pull IMAGE")
+	// 	resCh <- bo.TaskFailed(task, 0, "PULL_IMAGE")
+	// 	return
+	// }
 
+	log.Infof("creating task - ", task.Name)
 	id, err := r.containerManager.CreateContainer(ctx, task, inputStream)
 	if err != nil {
-		log.Errorf("creating task: %v", err)
+		log.Errorf("could not create: %v", err)
 		resCh <- bo.TaskFailed(task, 1, "CREATE_CONTAINER")
 		return
 	}
 
 	log.Infof("starting task - ", task.Name)
 	if err = r.containerManager.StartContainer(ctx, id); err != nil {
-		log.Errorf("starting task: %v", err)
+		log.Errorf("could not start task: %v", err)
 		resCh <- bo.TaskFailed(task, 2, "START_CONTAINER")
 		return
 	}
@@ -56,27 +59,24 @@ func (r *runner) runTask(ctx context.Context, task bo.UnitTask, resCh chan<- bo.
 	log.Infof("waiting task - ", task.Name)
 	statusSucess, err := r.containerManager.WaitForContainer(ctx, id)
 	if err != nil {
-		log.Errorf("wait for task: %v", err)
+		log.Errorf("wait for failed: %v", err)
 		resCh <- bo.TaskFailed(task, 3, "WAIT_CONTAINER")
 		return
 	}
 
 	if !statusSucess {
-		log.Errorf("task failed: %v", err)
+		log.Errorf("task failed")
 		resCh <- bo.TaskFailed(task, 3, "TASK_FAILED")
 		return
 	}
 
 	log.Infof("sucessed task - ", task.Name)
 	stream, err := r.containerManager.CopyTarOutput(ctx, id)
-
 	if err != nil {
 		log.Errorf("copy tar: %v", err)
 		resCh <- bo.TaskFailed(task, 4, "COPY_TAR")
 		return
 	}
-
-	defer stream.Close()
 
 	tarStream := tar.NewReader(stream)
 	output, err := getOutput(tarStream)
@@ -87,16 +87,16 @@ func (r *runner) runTask(ctx context.Context, task bo.UnitTask, resCh chan<- bo.
 
 	resCh <- bo.TaskResult{
 		Name:   task.Name,
-		Output: output.Output,
+		Output: output,
 		Error:  nil,
 	}
 }
 
-func getOutput(tarStream *tar.Reader) (output_json, error) {
+func getOutput(tarStream *tar.Reader) (map[string]interface{}, error) {
 	_, err := tarStream.Next()
 	if err != nil {
 		log.Errorf("stream next: %v", err)
-		return output_json{}, err
+		return nil, err
 	}
 
 	// data := make([]byte, header.Size)
@@ -105,10 +105,10 @@ func getOutput(tarStream *tar.Reader) (output_json, error) {
 	// 	resCh <- bo.TaskFailed(task, 4, "READ_TAR")
 	// }
 
-	output, err := system.Decode[output_json](tarStream)
+	output, err := system.Decode[map[string]interface{}](tarStream)
 	if err != nil {
 		log.Errorf("could not decode json: %v", err)
-		return output_json{}, err
+		return nil, err
 	}
 
 	return output, nil

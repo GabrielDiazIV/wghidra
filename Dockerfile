@@ -2,7 +2,10 @@ FROM ubuntu
 RUN apt-get update
 RUN apt-get install -y openjdk-17-jdk
 RUN apt-get install -y unzip
+RUN apt-get install -y curl
 COPY container /container
+RUN mkdir -p /container/input
+RUN mkdir -p /container/output
 WORKDIR /container
 COPY /container/gjava /usr/local/bin
 COPY /container/gpython /usr/local/bin
@@ -17,4 +20,4 @@ RUN apt-get install -y nano
 RUN pip install ghidra_bridge
 RUN python3 -m ghidra_bridge.install_server ./scripts
 # uncomment this for testing
-#CMD ["tail", "-f", "/dev/null"]
+CMD ["tail", "-f", "/dev/null"]

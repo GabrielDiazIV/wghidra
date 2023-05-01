@@ -2,6 +2,7 @@ package wghidra
 
 import (
 	"context"
+	"errors"
 	"io"
 
 	"github.com/gabrieldiaziv/wghidra/app/bo"
@@ -18,7 +19,7 @@ func (w *wghidra) PyRun(ctx context.Context, executeFunction string, paramters [
 		return nil, err
 	}
 
-	tarBuf, err := system.ToTar(funcs_json, "input.json")
+	tarBuf, err := system.ToDockerTar(funcs_json, "input.json")
 	if err != nil {
 		return nil, err
 	}
@@ -40,13 +41,16 @@ func (w *wghidra) PyRun(ctx context.Context, executeFunction string, paramters [
 }
 
 // ParseProject implements defs.WGhidra
-func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, []bo.Function, string, error) {
+func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, []interface{}, string, error) {
 
 	id := uuid.New().String()
 
-	exeBuf, err := system.ToTar(fstream, id)
-	readers := system.GetReaders(&exeBuf, 2)
+	exeBuf, err := system.ToDockerTar(fstream, "input.out")
+	if err != nil {
+		return "", nil, "", err
+	}
 
+	readers := system.GetReaders(&exeBuf, 2)
 	go func(rdr io.Reader) {
 		_, err = w.store.PostExe(ctx, id, rdr)
 		if err != nil {
@@ -77,14 +81,31 @@ func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, 
 		idxDecompile = 1
 	}
 
-	asm, okAsm := res[idxAsm].Output.(string)
-	fns, okDec := res[idxDecompile].Output.([]bo.Function)
+	// TODO: UPDATE THIS ) VALUE
+	asm, okAsm := res[idxAsm].Output["output"]
+	fns, okDec := res[idxDecompile].Output["output"]
+
 	if !okAsm || !okDec {
-		log.Errorf("could not validate results: okASM = %b , okDec = %b)", okAsm, okDec)
-		return "", nil, "", err
+		log.Errorf("does not exist results: okASM = %b , okDec = %b)", okAsm, okDec)
+		return "", nil, "", errors.New("not valid type")
 	}
 
-	return id, fns, asm, nil
+	// val, err := json.MarshalIndent(fns, "", "\t")
+	// if err != nil {
+	// 	log.Errorf("could not pretty json: %v", err)
+	// 	return "", nil, "", errors.New("not valid type")
+	// }
+
+	asm_out, okAsm := asm.(string)
+	fns_out, okDec := fns.([]interface{})
+
+	if !okAsm || !okDec {
+		log.Errorf("type of dec: %T", fns)
+		log.Errorf("could not convert type: okASM = %b , okDec = %b)", okAsm, okDec)
+		return "", nil, "", errors.New("not valid type")
+	}
+
+	return id, fns_out, asm_out, nil
 }
 
 // RunScripts implements defs.WGhidra
