@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	image_name = "busybox"
+	image_name = "worker"
 )
 
 type containerManager struct {

@@ -1,3 +1,3 @@
 #!/bin/bash
 # Wrapper for any script that runs in ghidra (not using the ghidra_bridge)
-./ghidra/support/analyzeHeadless ./ghidra ghidra_project -import ./input/input.out -scriptPath ./scripts -postscript "$@"
+/container/ghidra/support/analyzeHeadless /container/ghidra ghidra_project -import input/input.out -scriptPath /container/scripts -postscript "$@"

@@ -22,9 +22,9 @@ type ScriptTask struct {
 }
 
 type TaskResult struct {
-	Name   string     `yaml:"name,omitempty"    json:"name,omitempty"`
-	Output any        `yaml:"output,omitempty"      json:"output,omitempty"`
-	Error  *TaskError `json:"error,omitempty"`
+	Name   string                 `yaml:"name,omitempty"    json:"name,omitempty"`
+	Output map[string]interface{} `yaml:"output,omitempty"      json:"output,omitempty"`
+	Error  *TaskError             `json:"error,omitempty"`
 }
 
 type TaskError struct {
@@ -59,14 +59,14 @@ type ImagePullStatus struct {
 }
 
 const (
-	DecompileTaskName  = "Decompile"
-	DissasmbleTaskName = "Dissasmble"
-	RunTaskName        = "Run"
+	DecompileTaskName  = "decompiler"
+	DissasmbleTaskName = "asmer"
+	RunTaskName        = "runner"
 )
 
 const (
-	PythonGhidraScript = "pghidra"
-	JavaGhidraScript   = "jghidra"
+	PythonGhidraScript = "gpython"
+	JavaGhidraScript   = "gjava"
 	PyRunScript        = "pyrun"
 )
 
@@ -92,7 +92,7 @@ func NewDissasemblyTask() UnitTask {
 		Name:    DissasmbleTaskName,
 		Cleanup: true,
 		Task: ScriptTask{
-			ScriptName: "dissasmbly",
+			ScriptName: "ExportAssembly.java",
 		},
 	}
 }
@@ -113,32 +113,16 @@ func (st ScriptTask) Cmd() []string {
 	isTypePython := st.ScriptName[len(st.ScriptName)-2:] == "py"
 	isTypeJava := st.ScriptName[len(st.ScriptName)-4:] == "java"
 
-	argv_len := 1
-	offset := 0
-
-	if isTypePython || isTypeJava {
-		offset = 2
-	}
-
-	if st.Parameters != nil {
-		argv_len += len(st.Parameters)
-	}
-
-	argv := make([]string, argv_len+offset)
+	var argv []string
 
 	if isTypePython {
-		argv[0] = PythonGhidraScript
-		argv[1] = st.ScriptName
+		argv = append(argv, PythonGhidraScript)
 	} else if isTypeJava {
-		argv[0] = JavaGhidraScript
-		argv[1] = st.ScriptName
-	} else {
-		argv[0] = st.ScriptName
+		argv = append(argv, JavaGhidraScript)
 	}
 
-	for i, arg := range st.Parameters {
-		argv[i+offset] = arg
-	}
+	argv = append(argv, st.ScriptName)
+	argv = append(argv, st.Parameters...)
 
 	return argv
 

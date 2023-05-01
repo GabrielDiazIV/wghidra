@@ -71,7 +71,7 @@ func (g *gapi) postRun(c echo.Context) error {
 		return gError(c, "bad input", http.StatusBadRequest)
 	}
 
-	result, err := g.wghidra.PyRun(c.Request().Context(), run.ExecuteFunction, run.Functions)
+	result, err := g.wghidra.PyRun(c.Request().Context(), run.ExecuteFunction, run.Parameters, run.Functions)
 	if err != nil {
 		log.Errorf("could not run : %v", err)
 		return gError(c, "could not run", http.StatusBadRequest)

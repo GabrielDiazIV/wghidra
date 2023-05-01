@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Wrapper for any outside python script that uses the ghidra_bridge
-./ghidra/support/analyzeHeadless ./ghidra ghidra_project -import ./input/input.out -scriptPath ./scripts -postscript ghidra_bridge_server.py &
+/container/ghidra/support/analyzeHeadless /container/ghidra ghidra_project -import /container/input/input.out -scriptPath /container/scripts -postscript ghidra_bridge_server.py &
 while ! nc -z localhost 4768; do   
   sleep 0.1
 done
