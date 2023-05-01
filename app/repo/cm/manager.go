@@ -3,7 +3,7 @@ package cm
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"github.com/labstack/gommon/log"
 	"io"
 
 	api "github.com/docker/docker/api/types"
@@ -12,15 +12,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (cm *containerManager) PullImage(ctx context.Context, image string) error {
-	out, err := cm.cli.ImagePull(ctx, image, api.ImagePullOptions{})
+func (cm *containerManager) PullImage(ctx context.Context) error {
+	out, err := cm.cli.ImagePull(ctx, image_name, api.ImagePullOptions{})
 	if err != nil {
 		return errors.Wrap(err, "DOCKER PULL")
 	}
 
 	defer func() {
 		if err := out.Close(); err != nil {
-			fmt.Println(err)
+			log.Error(err)
 		}
 	}()
 
@@ -41,10 +41,10 @@ func (cm *containerManager) PullImage(ctx context.Context, image string) error {
 	return nil
 }
 
-func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTask) (string, error) {
+func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTask, inputStream io.Reader) (string, error) {
 	config := &container.Config{
 		Image: image_name,
-		Cmd:   task.Command,
+		Cmd:   task.Task.Cmd(),
 	}
 
 	res, err := cm.cli.ContainerCreate(ctx, config, &container.HostConfig{}, nil, nil, task.Name)
@@ -53,9 +53,9 @@ func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTas
 	}
 
 	if err := cm.cli.CopyToContainer(
-		ctx, res.ID, "/", task.Exe,
+		ctx, res.ID, "/input/", inputStream,
 		api.CopyToContainerOptions{AllowOverwriteDirWithFile: true}); err != nil {
-		fmt.Println("cannot copy file: ", err)
+		log.Errorf("cannot copy file: ", err)
 		return "", err
 	}
 	return res.ID, nil
@@ -67,7 +67,7 @@ func (cm *containerManager) StartContainer(ctx context.Context, id string) error
 }
 
 func (cm *containerManager) CopyTarOutput(ctx context.Context, id string) (io.ReadCloser, error) {
-	tarStream, _, err := cm.cli.CopyFromContainer(ctx, id, "output.yaml")
+	tarStream, _, err := cm.cli.CopyFromContainer(ctx, id, "output/output.json")
 	if err != nil {
 		return nil, err
 	}

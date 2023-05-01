@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	image_name = "wghidra"
+	image_name = "busybox"
 )
 
 type containerManager struct {

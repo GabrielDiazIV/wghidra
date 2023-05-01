@@ -5,14 +5,16 @@ go 1.20
 require (
 	github.com/Netflix/go-env v0.0.0-20220526054621-78278af1949d
 	github.com/docker/docker v23.0.4+incompatible
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/joho/godotenv v1.5.1
+	github.com/labstack/echo/v4 v4.10.2
+	github.com/labstack/gommon v0.4.0
 	github.com/rabbitmq/amqp091-go v1.8.0
 )
 
 require (
+	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/labstack/echo/v4 v4.10.2 // indirect
-	github.com/labstack/gommon v0.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/moby/term v0.0.0-20221205130635-1aeaba878587 // indirect
@@ -22,7 +24,6 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
-	golang.org/x/time v0.3.0 // indirect
 	gotest.tools/v3 v3.4.0 // indirect
 )
 

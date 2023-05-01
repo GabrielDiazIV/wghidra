@@ -6,14 +6,14 @@ import (
 
 type TaskDefinition struct {
 	Version string     `yaml:"version,omitempty" json:"version,omitempty"`
+	Exe     io.Reader  `yaml:"-"                 json:"-"`
 	Tasks   []UnitTask `yaml:"tasks,omitempty"   json:"tasks,omitempty"`
 }
 
 type UnitTask struct {
 	Name    string `yaml:"name,omitempty"    json:"name,omitempty"`
 	Task    ScriptTask
-	Cleanup bool      `yaml:"cleanup,omitempty" json:"cleanup,omitempty"`
-	Exe     io.Reader `yaml:"-"                 json:"-"`
+	Cleanup bool `yaml:"cleanup,omitempty" json:"cleanup,omitempty"`
 }
 
 type ScriptTask struct {
@@ -23,9 +23,7 @@ type ScriptTask struct {
 
 type TaskResult struct {
 	Name   string     `yaml:"name,omitempty"    json:"name,omitempty"`
-	ID     string     `yaml:"id,omitempty"      json:"id,omitempty"`
-	Link   string     `yaml:"link,omitempty"      json:"link,omitempty"`
-	Output string     `yaml:"output,omitempty"      json:"output,omitempty"`
+	Output any        `yaml:"output,omitempty"      json:"output,omitempty"`
 	Error  *TaskError `json:"error,omitempty"`
 }
 
@@ -35,15 +33,14 @@ type TaskError struct {
 }
 
 type Function struct {
-	Name       string
-	Parameters []string
-	Body       string
+	Name       string   `json:"name,omitempty"`
+	Parameters []string `json:"parameters,omitempty"`
+	Body       string   `json:"body,omitempty"`
 }
 
 func TaskFailed(ut UnitTask, code int, msg string) TaskResult {
 	return TaskResult{
 		Name: ut.Name,
-		ID:   ut.ID,
 		Error: &TaskError{
 			Code: code,
 			Msg:  msg,
@@ -61,40 +58,88 @@ type ImagePullStatus struct {
 	} `json:"progressDetail,omitempty"`
 }
 
-func Script2Command(st ScriptTask) []string {
-	cmd := []string{st.ScriptName}
-	cmd = append(cmd, st.Parameters...)
-	return cmd
-}
+const (
+	DecompileTaskName  = "Decompile"
+	DissasmbleTaskName = "Dissasmble"
+	RunTaskName        = "Run"
+)
 
-func NewScriptTask(name string, fstream io.Reader, task ScriptTask) UnitTask {
+const (
+	PythonGhidraScript = "pghidra"
+	JavaGhidraScript   = "jghidra"
+	PyRunScript        = "pyrun"
+)
+
+func NewScriptTask(name string, task ScriptTask) UnitTask {
 	return UnitTask{
 		Name:    name,
 		Cleanup: true,
-		Exe:     fstream,
 		Task:    task,
 	}
 }
 
-func NewDecompileTask(name string, fstream io.Reader) UnitTask {
+func NewDecompileTask() UnitTask {
 	return UnitTask{
-		Name:    name,
+		Name:    DecompileTaskName,
 		Cleanup: true,
-		Exe:     fstream,
 		Task: ScriptTask{
 			ScriptName: "extract.py",
 		},
 	}
 }
-
-func NewRunTask(name string, fstream io.Reader, paramters []string) UnitTask {
+func NewDissasemblyTask() UnitTask {
 	return UnitTask{
-		Name:    name,
+		Name:    DissasmbleTaskName,
 		Cleanup: true,
-		Exe:     fstream,
 		Task: ScriptTask{
-			ScriptName: "run.py",
+			ScriptName: "dissasmbly",
+		},
+	}
+}
+
+func NewRunTask(paramters []string) UnitTask {
+	return UnitTask{
+		Name:    RunTaskName,
+		Cleanup: true,
+		Task: ScriptTask{
+			ScriptName: PyRunScript,
 			Parameters: paramters,
 		},
 	}
+}
+
+func (st ScriptTask) Cmd() []string {
+
+	isTypePython := st.ScriptName[len(st.ScriptName)-2:] == "py"
+	isTypeJava := st.ScriptName[len(st.ScriptName)-4:] == "java"
+
+	argv_len := 1
+	offset := 0
+
+	if isTypePython || isTypeJava {
+		offset = 2
+	}
+
+	if st.Parameters != nil {
+		argv_len += len(st.Parameters)
+	}
+
+	argv := make([]string, argv_len+offset)
+
+	if isTypePython {
+		argv[0] = PythonGhidraScript
+		argv[1] = st.ScriptName
+	} else if isTypeJava {
+		argv[0] = JavaGhidraScript
+		argv[1] = st.ScriptName
+	} else {
+		argv[0] = st.ScriptName
+	}
+
+	for i, arg := range st.Parameters {
+		argv[i+offset] = arg
+	}
+
+	return argv
+
 }

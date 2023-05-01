@@ -24,6 +24,7 @@ type project_in struct {
 type project_out struct {
 	Functions []bo.Function `json:"functions,omitempty"`
 	ProjectID string        `json:"project_id,omitempty"`
+	Assembly  string        `json:"assembly,omitempty"`
 }
 
 type scripts_in struct {
@@ -38,10 +39,6 @@ type run_in struct {
 	Functions       []bo.Function `json:"functions,omitempty"`
 	ExecuteFunction string        `json:"execute_function,omitempty"`
 	Parameters      []string      `json:"parameters,omitempty"`
-}
-
-type run_out struct {
-	Results string `json:"results,omitempty"`
 }
 
 func gSuccess(c echo.Context, data interface{}) error {

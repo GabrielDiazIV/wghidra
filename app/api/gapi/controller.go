@@ -23,7 +23,7 @@ func (g *gapi) postProject(c echo.Context) error {
 
 	defer project.Close()
 
-	projectId, functions, err :=
+	projectId, functions, asm, err :=
 		g.wghidra.ParseProject(c.Request().Context(), project)
 
 	if err != nil {
@@ -34,6 +34,7 @@ func (g *gapi) postProject(c echo.Context) error {
 	return gSuccess(c, project_out{
 		Functions: functions,
 		ProjectID: projectId,
+		Assembly:  asm,
 	})
 
 }
@@ -76,5 +77,7 @@ func (g *gapi) postRun(c echo.Context) error {
 		return gError(c, "could not run", http.StatusBadRequest)
 	}
 
-	return gSuccess(c, result)
+	return gSuccess(c, scripts_out{
+		Results: result,
+	})
 }
