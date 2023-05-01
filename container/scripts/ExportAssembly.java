@@ -21,9 +21,6 @@ import java.util.List;
 import java.util.ArrayList;
 import java.lang.String;
 
-import com.google.gson.*;
-import com.google.gson.stream.JsonWriter;
-
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.listing.*;
@@ -121,12 +118,12 @@ public class ExportAssembly extends GhidraScript {
 		registers.addAll(registers8h);
 		registers.addAll(registers8l);
 
-		File outputFile = new File("../output/" + args[0]);
+		File outputFile = new File("/container/output/output.json");
 
 		FileWriter outputWriter = new FileWriter(outputFile);
 
 		InstructionIterator instructions = currentProgram.getListing().getInstructions(true);
-
+		outputWriter.write("{\"output\" : \"");
 		while (instructions.hasNext() && !monitor.isCancelled()) {
 			Instruction instruction = instructions.next();
 			String instr = instruction.toString().toLowerCase();
@@ -157,9 +154,9 @@ public class ExportAssembly extends GhidraScript {
 			*/
 			
 			// Output to file, SHOULD ALWAYS BE AFTER STRING MANIPULATION
-			outputWriter.write(instr + "\n");
+			outputWriter.write(instr + "\\n");
 		}
-
+		outputWriter.write("\"}");
 		outputWriter.close();
 
 		println("Wrote functions to " + outputFile);
