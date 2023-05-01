@@ -1,15 +1,34 @@
 package gapi
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func (g *gapi) addRoutes() {
 	grp := g.e.Group("/api")
+	// grp.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+	// 	AllowOrigins: []string{"*"},
+	// 	AllowHeaders: []string{
+	// 		echo.HeaderAccessControlAllowMethods,
+	// 		echo.HeaderAccessControlAllowOrigin,
+	// 		echo.HeaderContentType,
+	// 		echo.HeaderAccept,
+	// 		echo.HeaderOrigin,
+	// 	},
+	// }))
+	grp.Use(middleware.CORS())
 
 	g.postProjectRouter(grp)
 	g.postScriptsRouter(grp)
 	g.postRunRouter(grp)
+	grp.POST("/test", func(c echo.Context) error {
+		time.Sleep(time.Second * 60)
+		return c.JSON(http.StatusOK, "hello")
+	})
 
 }
 

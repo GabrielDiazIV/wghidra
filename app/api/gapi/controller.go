@@ -1,6 +1,7 @@
 package gapi
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -21,22 +22,26 @@ func (g *gapi) postProject(c echo.Context) error {
 		return gError(c, "cannot open file", http.StatusBadRequest)
 	}
 
-	defer project.Close()
+	// defer project.Close()
+	// project, err := os.Open("input.out")
+	// if err != nil {
+	// 	log.Errorf("cannot open file: %v", err)
+	// 	return gError(c, "cannot open file", http.StatusBadRequest)
+	// }
 
-	projectId, functions, asm, err :=
-		g.wghidra.ParseProject(c.Request().Context(), project)
+	// c.Request().Context()
+	projectId, functions, err :=
+		g.wghidra.ParseProject(context.Background(), project)
 
 	if err != nil {
 		log.Errorf("could not parse: %v", err)
-		return gError(c, "cannot open file", http.StatusBadRequest)
+		return gError(c, "cannot parse file", http.StatusBadRequest)
 	}
 
 	return gSuccess(c, project_out{
 		Functions: functions,
 		ProjectID: projectId,
-		Assembly:  asm,
 	})
-
 }
 
 func (g *gapi) postScripts(c echo.Context) error {

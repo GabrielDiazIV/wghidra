@@ -23,4 +23,5 @@ func NewGAPI(port string, wghidra defs.WGhidra) *gapi {
 func (g *gapi) Start() {
 	g.addRoutes()
 	g.e.Logger.Fatal(g.e.Start(g.port))
+
 }

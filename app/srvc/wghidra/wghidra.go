@@ -31,8 +31,9 @@ func (w *wghidra) PyRun(ctx context.Context, executeFunction string, paramters [
 		argv[i+1] = arg
 	}
 
+	id := uuid.New().String()
 	def := bo.TaskDefinition{
-		Tasks: []bo.UnitTask{bo.NewRunTask(argv)},
+		Tasks: []bo.UnitTask{bo.NewRunTask(id, argv)},
 	}
 
 	def.Exe = &tarBuf
@@ -41,13 +42,13 @@ func (w *wghidra) PyRun(ctx context.Context, executeFunction string, paramters [
 }
 
 // ParseProject implements defs.WGhidra
-func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, []interface{}, string, error) {
+func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, []interface{}, error) {
 
 	id := uuid.New().String()
 
 	exeBuf, err := system.ToDockerTar(fstream, "input.out")
 	if err != nil {
-		return "", nil, "", err
+		return "", nil, err
 	}
 
 	readers := system.GetReaders(&exeBuf, 2)
@@ -61,51 +62,27 @@ func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, 
 	defs := bo.TaskDefinition{
 		Exe: readers[1],
 		Tasks: []bo.UnitTask{
-			bo.NewDecompileTask(),
-			bo.NewDissasemblyTask(),
+			bo.NewDecompileTask(id),
+			// bo.NewDissasemblyTask(id),
 		},
 	}
 
 	// run decompile task
 	res := w.dokr.Run(ctx, defs)
 
-	var idxDecompile int
-	var idxAsm int
-
-	// create decoder using result
-	if res[0].Name == bo.DecompileTaskName {
-		idxDecompile = 0
-		idxAsm = 1
-	} else {
-		idxAsm = 0
-		idxDecompile = 1
+	fns, okDec := res[0].Output["output"]
+	if !okDec {
+		log.Errorf("does not exist results: okASM = %b )", okDec)
+		return "", nil, errors.New("not valid type")
 	}
 
-	// TODO: UPDATE THIS ) VALUE
-	asm, okAsm := res[idxAsm].Output["output"]
-	fns, okDec := res[idxDecompile].Output["output"]
-
-	if !okAsm || !okDec {
-		log.Errorf("does not exist results: okASM = %b , okDec = %b)", okAsm, okDec)
-		return "", nil, "", errors.New("not valid type")
-	}
-
-	// val, err := json.MarshalIndent(fns, "", "\t")
-	// if err != nil {
-	// 	log.Errorf("could not pretty json: %v", err)
-	// 	return "", nil, "", errors.New("not valid type")
-	// }
-
-	asm_out, okAsm := asm.(string)
 	fns_out, okDec := fns.([]interface{})
-
-	if !okAsm || !okDec {
-		log.Errorf("type of dec: %T", fns)
-		log.Errorf("could not convert type: okASM = %b , okDec = %b)", okAsm, okDec)
-		return "", nil, "", errors.New("not valid type")
+	if !okDec {
+		log.Errorf("does not exist results: okASM = %b )", okDec)
+		return "", nil, errors.New("not valid type")
 	}
 
-	return id, fns_out, asm_out, nil
+	return id, fns_out, nil
 }
 
 // RunScripts implements defs.WGhidra
@@ -119,6 +96,10 @@ func (w *wghidra) RunScripts(ctx context.Context, projectId string, def bo.TaskD
 
 	def.Exe = fstream
 	defer fstream.Close()
+
+	for i := range def.Tasks {
+		def.Tasks[i].ID = bo.TaskID(projectId, def.Tasks[i].Name)
+	}
 
 	return w.dokr.Run(ctx, def), nil
 }

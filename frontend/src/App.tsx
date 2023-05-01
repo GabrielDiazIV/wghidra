@@ -2,6 +2,21 @@ import { useState } from 'react'
 import LandingPage from './components/LandingPage'
 import MainPage from './components/MainPage';
 
+
+export const url = '/api/project';
+export const options = () => {
+  return {
+    method: 'POST',
+    body: "",
+    headers: {
+      Accept: '*/*',
+      // 'User-Agent': 'Thunder Client (https://www.thunderclient.com)',
+      // 'Content-Type': 'multipart/form-data'
+    }
+  }
+};
+
+
 function App() {
   const [screen, setScreen] = useState('landing');
   const [status, setStatus] = useState('start');
@@ -14,9 +29,9 @@ function App() {
   function transitionScreens(responseType) {
     console.log("Setting status to " + responseType);
     setStatus(responseType);
-    
+
     setTimeout(() => {
-      if(responseType === 'fail') {
+      if (responseType === 'fail') {
         setStatus('start');
         setTransition('fade-in');
       }
@@ -33,37 +48,46 @@ function App() {
     setScreen('landing');
   }
 
-  const handleFileSelect = async(file)  => {
+  const handleFileSelect = async (file) => {
     setStatus('loading');
 
     const formData = new FormData();
-    formData.append('file', file);
-  
-    fetch('/api/project', {
-      method: 'POST',
-      body: formData
-    })
-    .then(async response => {
-      if(response.ok) {
-        const data = await response.json();
-        setFunctionList(data.functions);
-        setAssembly(data.asm);
-        setProjectID(data.projectId);
-        transitionScreens('success');
-      }
-      else {
-        const data = await response.json();
-        setErrorMessage(data.error.message);
+    formData.append('project', file);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort()
+    }, 60_000)
+
+    let request_opt = options()
+    request_opt.body = formData
+    fetch(url, request_opt)
+      .then(async response => {
+        console.log(response)
+        if (response.ok) {
+          const data = await response.json();
+          console.log(data)
+          setFunctionList(data.functions);
+          setAssembly(data.asm);
+          setProjectID(data.projectId);
+          transitionScreens('success');
+        }
+        else {
+          const data = await response.json();
+          setErrorMessage(data.error.message);
+          transitionScreens('fail');
+        }
+      })
+      .catch(error => {
+        console.log(error)
+        setErrorMessage(error.message);
         transitionScreens('fail');
-      }
-    })
-    .catch(error => {
-      setErrorMessage(error.message);
-      transitionScreens('success');
-    });
+      })
+      .finally(() => {
+        clearTimeout(timeout)
+      });
   }
 
-  let content = screen === 'landing' ? <LandingPage status={status} error={errorMessage} transition={transition} onFileSelect={(file) => {handleFileSelect(file)}}/> : <MainPage projectId={projectId} homeHandler={homeHandler} functionList={functionList} assembly={assembly}/>;
+  let content = screen === 'landing' ? <LandingPage status={status} error={errorMessage} transition={transition} onFileSelect={(file) => { handleFileSelect(file) }} /> : <MainPage projectId={projectId} homeHandler={homeHandler} functionList={functionList} assembly={assembly} />;
   return (
     <div>
       {content}

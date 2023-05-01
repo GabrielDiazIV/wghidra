@@ -6,7 +6,7 @@ import '../css/RunnerMode.css';
 
 
 function RunnerMode(props) {
-    const {params, name } = props;
+  const { params, name } = props;
   const [body, setBody] = useState(props.body);
   const [exebody, setExeBody] = useState(props.body);
   const [output, setOutput] = useState('');
@@ -24,8 +24,8 @@ function RunnerMode(props) {
         executeFunction: name,
         parameters: textValues
       };
-      
-      const response = await fetch(`https://example.com/api/scripts`, {
+
+      const response = await fetch(`https://localhost:6969/api/scripts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -38,7 +38,7 @@ function RunnerMode(props) {
       textAreaRef.current.scrollIntoView({ behavior: 'smooth' });
     } catch (error) {
       console.error(error);
-      
+
       setOutput("Lorem ipsum dolor sit amet, consectetur adipiscing elit. In malesuada turpis enim, in placerat odio vestibulum vel. Praesent fermentum sem ut neque tempus mattis. Donec malesuada ligula at tortor tincidunt hendrerit. Morbi lobortis vitae urna ac pharetra. Vestibulum lacinia, tellus eget lacinia mollis, neque sem rutrum ipsum, id ultrices dolor orci sed lectus. Pellentesque molestie sem vitae felis ultrices blandit. Aliquam lobortis condimentum arcu eget suscipit. Praesent vestibulum egestas lorem nec egestas. Proin eget ipsum ex. Nulla ullamcorper gravida ligula. Sed sit amet arcu vehicula, fringilla nisi nec, egestas velit. Integer tristique tempus nisi, id ultrices nunc convallis quis. Phasellus at fringilla ligula.");
       textAreaRef.current.scrollIntoView({ behavior: 'smooth' });
     } finally {
@@ -67,39 +67,39 @@ function RunnerMode(props) {
   return (
     <div className="runner-mode">
       <div className="runner-mode__textbox-container">
-      <AceEditor
-        className="runner-mode__textbox"
-        mode="c_cpp"
-        theme="monokai"
-        value={body}
-        onChange={(newValue) => bodyChange(newValue)}
-        fontSize={16}
-        width="100%"
-        height="auto"
-        minLines={15}
-        maxLines={Infinity}
-        wrapEnabled={true}
-        editorProps={{ $blockScrolling: true }}
-      />
+        <AceEditor
+          className="runner-mode__textbox"
+          mode="c_cpp"
+          theme="monokai"
+          value={body}
+          onChange={(newValue) => bodyChange(newValue)}
+          fontSize={16}
+          width="100%"
+          height="auto"
+          minLines={15}
+          maxLines={Infinity}
+          wrapEnabled={true}
+          editorProps={{ $blockScrolling: true }}
+        />
       </div>
       <div className="runner-mode__dropdown-container">
         <div className='runner-mode__params-container'>
-            {params.map((param, index) => (
-                <div  className='runner-mode__param-input-container' key={index}>
-                    <span className='runner-mode__param-input-type'>{param}: </span>
-                    <input className = 'runner-mode__param-input-box' type="text" value={textValues[index]}  onChange={(e) => handleTextChange(index, e.target.value)} />
-                </div>
-            ))}
+          {params.map((param, index) => (
+            <div className='runner-mode__param-input-container' key={index}>
+              <span className='runner-mode__param-input-type'>{param}: </span>
+              <input className='runner-mode__param-input-box' type="text" value={textValues[index]} onChange={(e) => handleTextChange(index, e.target.value)} />
+            </div>
+          ))}
         </div>
         <button className={`runner-mode__button${!isLoading ? ' active' : ''}`} onClick={handleSubmitClick}>
-            {isLoading ? 'Loading...' : 'RUN'}
+          {isLoading ? 'Loading...' : 'RUN'}
         </button>
       </div>
       {output && (
         <div className="runner-mode__output-container no-scrollbar">
           <div className="runner-mode__output" ref={textAreaRef} >
             {output}
-            </div>
+          </div>
         </div>
       )}
     </div>

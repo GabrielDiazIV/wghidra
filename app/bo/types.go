@@ -1,6 +1,7 @@
 package bo
 
 import (
+	"fmt"
 	"io"
 )
 
@@ -12,6 +13,7 @@ type TaskDefinition struct {
 
 type UnitTask struct {
 	Name    string `yaml:"name,omitempty"    json:"name,omitempty"`
+	ID      string `yaml:"id,omitempty"    json:"id,omitempty"`
 	Task    ScriptTask
 	Cleanup bool `yaml:"cleanup,omitempty" json:"cleanup,omitempty"`
 }
@@ -70,26 +72,33 @@ const (
 	PyRunScript        = "pyrun"
 )
 
-func NewScriptTask(name string, task ScriptTask) UnitTask {
+func TaskID(projectID string, taskName string) string {
+	return fmt.Sprintf("%s-%s", projectID, taskName)
+}
+
+func NewScriptTask(projectID string, name string, task ScriptTask) UnitTask {
 	return UnitTask{
 		Name:    name,
 		Cleanup: true,
+		ID:      TaskID(projectID, name),
 		Task:    task,
 	}
 }
 
-func NewDecompileTask() UnitTask {
+func NewDecompileTask(projectID string) UnitTask {
 	return UnitTask{
 		Name:    DecompileTaskName,
 		Cleanup: true,
+		ID:      TaskID(projectID, DecompileTaskName),
 		Task: ScriptTask{
 			ScriptName: "extract.py",
 		},
 	}
 }
-func NewDissasemblyTask() UnitTask {
+func NewDissasemblyTask(projectID string) UnitTask {
 	return UnitTask{
 		Name:    DissasmbleTaskName,
+		ID:      TaskID(projectID, DissasmbleTaskName),
 		Cleanup: true,
 		Task: ScriptTask{
 			ScriptName: "ExportAssembly.java",
@@ -97,10 +106,11 @@ func NewDissasemblyTask() UnitTask {
 	}
 }
 
-func NewRunTask(paramters []string) UnitTask {
+func NewRunTask(projectID string, paramters []string) UnitTask {
 	return UnitTask{
 		Name:    RunTaskName,
 		Cleanup: true,
+		ID:      TaskID(projectID, RunTaskName),
 		Task: ScriptTask{
 			ScriptName: PyRunScript,
 			Parameters: paramters,

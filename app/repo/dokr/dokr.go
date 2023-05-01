@@ -18,7 +18,7 @@ func (r *runner) Run(ctx context.Context, def bo.TaskDefinition) []bo.TaskResult
 
 	for i := range def.Tasks {
 		go func(tsk bo.UnitTask, rdr io.Reader) {
-			r.runTask(ctx, tsk, resCh, rdr)
+			r.runTask(context.Background(), tsk, resCh, rdr)
 		}(def.Tasks[i], readers[i])
 	}
 
