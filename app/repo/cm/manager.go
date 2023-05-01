@@ -55,7 +55,10 @@ func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTas
 
 	log.Infof("CREATING CMD: %v", task.Task.Cmd())
 
-	res, err := cm.cli.ContainerCreate(ctx, config, &container.HostConfig{}, nil, nil, task.ID)
+	res, err := cm.cli.ContainerCreate(
+		ctx, config,
+		&container.HostConfig{NetworkMode: "host"},
+		nil, nil, task.ID)
 	if err != nil {
 		return "", nil
 	}
