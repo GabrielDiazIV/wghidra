@@ -3,7 +3,7 @@ package cm
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"github.com/labstack/gommon/log"
 	"io"
 
 	api "github.com/docker/docker/api/types"
@@ -20,7 +20,7 @@ func (cm *containerManager) PullImage(ctx context.Context) error {
 
 	defer func() {
 		if err := out.Close(); err != nil {
-			fmt.Println(err)
+			log.Error(err)
 		}
 	}()
 
@@ -41,7 +41,7 @@ func (cm *containerManager) PullImage(ctx context.Context) error {
 	return nil
 }
 
-func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTask, exeStream io.Reader) (string, error) {
+func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTask, inputStream io.Reader) (string, error) {
 	config := &container.Config{
 		Image: image_name,
 		Cmd:   task.Task.Cmd(),
@@ -53,9 +53,9 @@ func (cm *containerManager) CreateContainer(ctx context.Context, task bo.UnitTas
 	}
 
 	if err := cm.cli.CopyToContainer(
-		ctx, res.ID, "/", exeStream,
+		ctx, res.ID, "/input/", inputStream,
 		api.CopyToContainerOptions{AllowOverwriteDirWithFile: true}); err != nil {
-		fmt.Println("cannot copy file: ", err)
+		log.Errorf("cannot copy file: ", err)
 		return "", err
 	}
 	return res.ID, nil
@@ -67,7 +67,7 @@ func (cm *containerManager) StartContainer(ctx context.Context, id string) error
 }
 
 func (cm *containerManager) CopyTarOutput(ctx context.Context, id string) (io.ReadCloser, error) {
-	tarStream, _, err := cm.cli.CopyFromContainer(ctx, id, "output.yaml")
+	tarStream, _, err := cm.cli.CopyFromContainer(ctx, id, "output/output.json")
 	if err != nil {
 		return nil, err
 	}

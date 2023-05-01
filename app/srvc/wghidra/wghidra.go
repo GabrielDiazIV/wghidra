@@ -1,11 +1,8 @@
 package wghidra
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"io"
-	"strings"
 
 	"github.com/gabrieldiaziv/wghidra/app/bo"
 	"github.com/gabrieldiaziv/wghidra/app/system"
@@ -13,10 +10,15 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
-func (w *wghidra) PyRun(ctx context.Context, executeFunction string, paramters []string, functions string) ([]bo.TaskResult, error) {
+func (w *wghidra) PyRun(ctx context.Context, executeFunction string, paramters []string, functions []bo.Function) ([]bo.TaskResult, error) {
 
-	fnsReader := strings.NewReader(functions)
-	tarBuf, err := system.ToTar(fnsReader, "functions.json")
+	funcs_json, err := system.Encode(functions_json{Functions: functions})
+	if err != nil {
+		log.Errorf("functions to json: %v", err)
+		return nil, err
+	}
+
+	tarBuf, err := system.ToTar(funcs_json, "input.json")
 	if err != nil {
 		return nil, err
 	}
@@ -63,27 +65,26 @@ func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, 
 	// run decompile task
 	res := w.dokr.Run(ctx, defs)
 
-	var dec *json.Decoder
-	var assembly string
+	var idxDecompile int
+	var idxAsm int
 
 	// create decoder using result
-
 	if res[0].Name == bo.DecompileTaskName {
-		dec = json.NewDecoder(strings.NewReader(res[0].Output))
-		assembly = res[1].Output
+		idxDecompile = 0
+		idxAsm = 1
 	} else {
-		dec = json.NewDecoder(strings.NewReader(res[1].Output))
-		assembly = res[0].Output
+		idxAsm = 0
+		idxDecompile = 1
 	}
 
-	// decode result
-	var fns []bo.Function
-	if err := dec.Decode(&fns); err != nil {
-		log.Errorf("could not decode fns: %v", err)
+	asm, okAsm := res[idxAsm].Output.(string)
+	fns, okDec := res[idxDecompile].Output.([]bo.Function)
+	if !okAsm || !okDec {
+		log.Errorf("could not validate results: okASM = %b , okDec = %b)", okAsm, okDec)
 		return "", nil, "", err
 	}
 
-	return id, fns, assembly, nil
+	return id, fns, asm, nil
 }
 
 // RunScripts implements defs.WGhidra

@@ -3,15 +3,49 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log"
+	"strings"
 
+	"github.com/gabrieldiaziv/wghidra/app/bo"
 	"github.com/gabrieldiaziv/wghidra/app/bo/iface"
-	"github.com/gabrieldiaziv/wghidra/app/repo/cm"
-	"github.com/gabrieldiaziv/wghidra/app/repo/dokr"
 	"github.com/gabrieldiaziv/wghidra/app/srvc/wghidra"
-	"github.com/google/uuid"
 )
+
+type mockdokr struct {
+}
+
+func NewMockDokr() iface.Dokr {
+	return &mockdokr{}
+}
+
+func (d *mockdokr) Run(ctx context.Context, def bo.TaskDefinition) []bo.TaskResult {
+
+	res := make([]bo.TaskResult, len(def.Tasks))
+	for i, task := range def.Tasks {
+		temp_res := bo.TaskResult{
+			Name:  task.Name,
+			Error: nil,
+		}
+		if task.Name == bo.DecompileTaskName {
+			temp_res.Output = []bo.Function{
+				{Name: "fn1", Parameters: []string{"p1", "p2"}, Body: "function body"},
+				{Name: "fn2", Parameters: []string{"p1", "p2"}, Body: "function body222"},
+			}
+		} else if task.Name == bo.DissasmbleTaskName {
+			temp_res.Output = "rax 1 2"
+		} else if task.Name == bo.RunTaskName {
+			temp_res.Output = "function output"
+		} else {
+			temp_res.Output = "ayyy yo"
+		}
+
+		res[i] = temp_res
+	}
+
+	return res
+}
 
 type mockstore struct {
 	exe map[string][]byte
@@ -52,17 +86,35 @@ func (s *mockstore) PostDecompiled(ctx context.Context, id string, stream io.Rea
 }
 
 func main() {
-	cli, err := cm.NewDockerClient()
-	if err != nil {
-		log.Fatalf("could not create cli: %v", err)
-	}
 
 	W := wghidra.NewWGhidra(
-		dokr.NewRunner(cm.NewContainerManager(cli)),
+		NewMockDokr(),
 		NewMockStore(),
 	)
 
 	ctx := context.Background()
-	W.ParseProject(ctx)
+	fakeReader := strings.NewReader("asdf")
+	pid, fns, asm, err := W.ParseProject(ctx, fakeReader)
+	if err != nil {
+		fmt.Printf("parse err %v", err)
+		return
+	}
+
+	fmt.Printf("project id: %s\n", pid)
+	fmt.Printf("fns: %+v\n", fns)
+	fmt.Printf("asm: %s\n", asm)
+
+	// stPy := bo.ScriptTask{
+	// 	ScriptName: "run.py",
+	// 	Parameters: []string{"param.py", "p2", "p3"},
+	// }
+	// stJava := bo.ScriptTask{
+	// 	ScriptName: "run.java",
+	// 	Parameters: []string{"java", "j2", "j3"},
+	// }
+	// stRun := bo.ScriptTask{
+	// 	ScriptName: bo.PyRunScript,
+	// 	Parameters: []string{"prrr", "arg1", "arg2"},
+	// }
 
 }

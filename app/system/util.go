@@ -10,19 +10,18 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
-func Encode[T any](t T) ([]byte, error) {
+func Encode[T any](t T) (io.Reader, error) {
 	var b bytes.Buffer
 	encoder := json.NewEncoder(&b)
 	if err := encoder.Encode(t); err != nil {
 		return nil, err
 	}
-	return b.Bytes(), nil
+	return &b, nil
 }
 
-func Decode[T any](data []byte) (T, error) {
+func Decode[T any](reader io.Reader) (T, error) {
 	var msg T
-	buf := bytes.NewBuffer(data)
-	decoder := json.NewDecoder(buf)
+	decoder := json.NewDecoder(reader)
 	err := decoder.Decode(&msg)
 	return msg, err
 }

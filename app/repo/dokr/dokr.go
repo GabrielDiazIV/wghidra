@@ -3,7 +3,6 @@ package dokr
 import (
 	"archive/tar"
 	"context"
-	"fmt"
 	"io"
 
 	"github.com/gabrieldiaziv/wghidra/app/bo"
@@ -30,22 +29,22 @@ func (r *runner) Run(ctx context.Context, def bo.TaskDefinition) []bo.TaskResult
 	return res
 }
 
-func (r *runner) runTask(ctx context.Context, task bo.UnitTask, resCh chan<- bo.TaskResult, exeStream io.Reader) {
+func (r *runner) runTask(ctx context.Context, task bo.UnitTask, resCh chan<- bo.TaskResult, inputStream io.Reader) {
 
-	fmt.Println("preparing tasks - ", task.Name)
+	log.Infof("preparing tasks - ", task.Name)
 	if err := r.containerManager.PullImage(ctx); err != nil {
 		resCh <- bo.TaskFailed(task, 0, "PULL_IMAGE")
 		return
 	}
 
-	id, err := r.containerManager.CreateContainer(ctx, task, exeStream)
+	id, err := r.containerManager.CreateContainer(ctx, task, inputStream)
 	if err != nil {
 		log.Errorf("creating task: %v", err)
 		resCh <- bo.TaskFailed(task, 1, "CREATE_CONTAINER")
 		return
 	}
 
-	fmt.Println("starting task - ", task.Name)
+	log.Infof("starting task - ", task.Name)
 	if err = r.containerManager.StartContainer(ctx, id); err != nil {
 		log.Errorf("starting task: %v", err)
 		resCh <- bo.TaskFailed(task, 2, "START_CONTAINER")
@@ -54,7 +53,7 @@ func (r *runner) runTask(ctx context.Context, task bo.UnitTask, resCh chan<- bo.
 
 	defer r.containerManager.RemoveContainer(ctx, id)
 
-	fmt.Println("waiting task - ", task.Name)
+	log.Infof("waiting task - ", task.Name)
 	statusSucess, err := r.containerManager.WaitForContainer(ctx, id)
 	if err != nil {
 		log.Errorf("wait for task: %v", err)
@@ -62,35 +61,55 @@ func (r *runner) runTask(ctx context.Context, task bo.UnitTask, resCh chan<- bo.
 		return
 	}
 
-	if statusSucess {
-		fmt.Println("sucessed task - ", task.Name)
-		stream, err := r.containerManager.CopyTarOutput(ctx, id)
-
-		if err != nil {
-			log.Errorf("copy tar: %v", err)
-			resCh <- bo.TaskFailed(task, 4, "COPY_TAR")
-			return
-		}
-
-		defer stream.Close()
-
-		tarStream := tar.NewReader(stream)
-		header, err := tarStream.Next()
-		if err != nil {
-			log.Errorf("stream next: %v", err)
-			resCh <- bo.TaskFailed(task, 4, "HEADER_TAR")
-		}
-
-		data := make([]byte, header.Size)
-		if _, err = io.ReadFull(tarStream, data); err != nil {
-			log.Errorf("could not read: %v", err)
-			resCh <- bo.TaskFailed(task, 4, "READ_TAR")
-		}
-
-		resCh <- bo.TaskResult{
-			Name:   task.Name,
-			Output: string(data),
-			Error:  nil,
-		}
+	if !statusSucess {
+		log.Errorf("task failed: %v", err)
+		resCh <- bo.TaskFailed(task, 3, "TASK_FAILED")
+		return
 	}
+
+	log.Infof("sucessed task - ", task.Name)
+	stream, err := r.containerManager.CopyTarOutput(ctx, id)
+
+	if err != nil {
+		log.Errorf("copy tar: %v", err)
+		resCh <- bo.TaskFailed(task, 4, "COPY_TAR")
+		return
+	}
+
+	defer stream.Close()
+
+	tarStream := tar.NewReader(stream)
+	output, err := getOutput(tarStream)
+	if err != nil {
+		resCh <- bo.TaskFailed(task, 4, "COPY_TAR")
+		return
+	}
+
+	resCh <- bo.TaskResult{
+		Name:   task.Name,
+		Output: output.Output,
+		Error:  nil,
+	}
+}
+
+func getOutput(tarStream *tar.Reader) (output_json, error) {
+	_, err := tarStream.Next()
+	if err != nil {
+		log.Errorf("stream next: %v", err)
+		return output_json{}, err
+	}
+
+	// data := make([]byte, header.Size)
+	// if _, err = io.ReadFull(tarStream, data); err != nil {
+	// 	log.Errorf("could not read: %v", err)
+	// 	resCh <- bo.TaskFailed(task, 4, "READ_TAR")
+	// }
+
+	output, err := system.Decode[output_json](tarStream)
+	if err != nil {
+		log.Errorf("could not decode json: %v", err)
+		return output_json{}, err
+	}
+
+	return output, nil
 }
