@@ -83,6 +83,8 @@ function MainPage(props) {
   const [selectedMode, setSelectedMode] = useState('script');
   const [selectedOption, setSelectedOption] = useState(TODOlist[0].name);
   const [selectedFunction, setSelectedFunction] = useState<any>(TODOlist[0]);
+  const [editedFunctionList, setEditedFunctionList] = useState(TODOlist);
+  const [runnableFunction, setRunnableFunction] = useState<any>(TODOlist[0]);
 
   console.log(TODOlist);
 
@@ -98,14 +100,31 @@ function MainPage(props) {
         }
         
     });
+
+    editedFunctionList.forEach(f => {
+      if(f.name === option) {
+          setRunnableFunction(f);
+          return;
+      }
+      
+  });
   };
+
+  const handleRunnableBodyChange =(fname, newBody) => {
+    for (let i = 0; i < editedFunctionList.length; i++) {
+      if (editedFunctionList[i].name === fname) {
+        editedFunctionList[i].body = newBody;
+        return;
+      }
+    }
+  }
 
   let mainComponent;
   if (selectedMode === 'script') {
     mainComponent = <ScriptMode body={selectedFunction.body}/>
   }
   else if(selectedMode === 'runner') {
-    mainComponent = <RunnerMode body={selectedFunction.body} params={['String', 'int', 'int']}/> 
+    mainComponent = <RunnerMode name={runnableFunction.name} onBodyChange={handleRunnableBodyChange} body={runnableFunction.body} params={['String', 'int', 'int']}/> 
   }
   else if (selectedMode === 'assembly') {
     mainComponent = <AssemblyMode body={TODOcode}/>
@@ -129,6 +148,7 @@ function MainPage(props) {
         className="main-page__logo"
         src={logo}
         alt="App Logo"
+        onClick={() => props.homeHandler()}
       />
       <Sidebar functionNames={functionNameList} selectedOption={selectedOption} onClick={handleOptionClick} />
       <div className="main-content">

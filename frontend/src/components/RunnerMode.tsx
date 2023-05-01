@@ -8,6 +8,7 @@ import '../css/RunnerMode.css';
 function RunnerMode(props) {
     const {params } = props;
   const [body, setBody] = useState(props.body);
+  const [exebody, setExeBody] = useState(props.body);
   const [output, setOutput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [textValues, setTextValues] = useState<string[]>(new Array(params.length).fill(''));
@@ -17,6 +18,7 @@ function RunnerMode(props) {
   const handleSubmitClick = async () => {
     setIsLoading(true);
     try {
+      // use
       const response = await fetch(`https://example.com/api/${textValues}`);
       const data = await response.text();
       setOutput(data);
@@ -37,13 +39,17 @@ function RunnerMode(props) {
     setTextValues(newValues);
   };
 
+  function bodyChange(newValue) {
+    props.onBodyChange(props.name, newValue);
+  }
+
   // run when body changes
   useEffect(() => {
     setTextValues(new Array(params.length).fill(''));
     setOutput('');
     setIsLoading(false);
     setBody(props.body);
-  }, [props.body]);
+  }, [props.name]);
 
   return (
     <div className="runner-mode">
@@ -53,7 +59,7 @@ function RunnerMode(props) {
         mode="c_cpp"
         theme="monokai"
         value={body}
-        onChange={(newValue) => setBody(newValue)}
+        onChange={(newValue) => bodyChange(newValue)}
         fontSize={16}
         width="100%"
         height="auto"
