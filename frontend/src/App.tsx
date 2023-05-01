@@ -10,11 +10,6 @@ function App() {
   const [functionList, setFunctionList] = useState([])
   const [errorMessage, setErrorMessage] = useState('')
 
-  function someFetch() {
-    // setFunctionList
-    // setStatus
-  }
-
   function transitionScreens(responseType) {
     console.log("Setting status to " + responseType);
     setStatus(responseType);
@@ -29,6 +24,12 @@ function App() {
 
     }, 3000);
     setTimeout(() => setTransition('fade-out'), 2600); // Change status to fade-out after 3 seconds
+  }
+
+  const homeHandler = () => {
+    setStatus('start');
+    setTransition('fade-in');
+    setScreen('landing');
   }
 
   const handleFileSelect = async(file)  => {
@@ -60,7 +61,7 @@ function App() {
     });
   }
 
-  let content = screen === 'landing' ? <LandingPage status={status} error={errorMessage} transition={transition} onFileSelect={(file) => {handleFileSelect(file)}}/> : <MainPage/>;
+  let content = screen === 'landing' ? <LandingPage status={status} error={errorMessage} transition={transition} onFileSelect={(file) => {handleFileSelect(file)}}/> : <MainPage homeHandler={homeHandler}/>;
   return (
     <div>
       {content}

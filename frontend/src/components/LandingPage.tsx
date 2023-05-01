@@ -20,6 +20,7 @@ function LandingPage(props) {
   }
 
   let maincontent;
+  console.log(status);
   if(status === 'start') {
     maincontent = (
       <div className="landing-page__upload">

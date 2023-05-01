@@ -1,4 +1,6 @@
 import React from 'react';
+import SyntaxHighlighter from 'react-syntax-highlighter';
+import { atelierCaveDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import '../css/AssemblyMode.css';
 
 function AssemblyMode(props) {
@@ -7,7 +9,9 @@ function AssemblyMode(props) {
   return (
     <div className="assembly-mode">
       <div className="assembly-mode__textbox-container">
-        <div className="assembly-mode__textbox">{body}</div>
+        <SyntaxHighlighter className="assembly-mode__textbox" language="asm" style={atelierCaveDark}>
+          {body}
+        </SyntaxHighlighter>
       </div>
     </div>
   );
