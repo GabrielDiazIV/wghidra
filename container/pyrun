@@ -1,0 +1,3 @@
+#!/bin/bash
+# Wrapper for the pyrun runner script
+python3 /container/scripts/runner.py "$@"

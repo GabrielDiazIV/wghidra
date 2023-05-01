@@ -1,0 +1,9 @@
+{
+    "functions" : [
+        {
+            "name" : "add",
+            "parameters" : ["int","int"],
+            "body" : "int add(int a, int b) {return a + b;}"
+        }
+    ]
+}
