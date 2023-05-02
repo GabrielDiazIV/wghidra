@@ -13,9 +13,9 @@ function MainPage(props) {
 
   const [selectedMode, setSelectedMode] = useState('script');
   const [selectedOption, setSelectedOption] = useState(functionList[0].name);
-  const [selectedFunction, setSelectedFunction] = useState<any>(functionList[0]);
-  const [editedFunctionList, setEditedFunctionList] = useState(functionList);
-  const [runnableFunction, setRunnableFunction] = useState<any>(functionList[0]);
+  const [selectedFunction, setSelectedFunction] = useState<Function>(functionList[0]);
+  const [editedFunctionList, setEditedFunctionList] = useState<Function[]>(functionList);
+  const [runnableFunction, setRunnableFunction] = useState<Function>(functionList[0]);
 
   console.log(functionList);
 
@@ -23,6 +23,7 @@ function MainPage(props) {
 
   const handleOptionClick = (option) => {
     setSelectedOption(option);
+
 
     functionList.forEach(f => {
       if (f.name === option) {
@@ -37,7 +38,6 @@ function MainPage(props) {
         setRunnableFunction(f);
         return;
       }
-
     });
   };
 
@@ -55,7 +55,14 @@ function MainPage(props) {
     mainComponent = <ScriptMode projectId={projectId} body={selectedFunction.body} />
   }
   else if (selectedMode === 'runner') {
-    mainComponent = <RunnerMode projectId={projectId} name={runnableFunction.name} onBodyChange={handleRunnableBodyChange} body={runnableFunction.body} params={runnableFunction.parameters} />
+    mainComponent = <RunnerMode
+      projectId={projectId}
+      editedFunctionList={editedFunctionList}
+      setEditedFunctionList={setEditedFunctionList}
+      name={runnableFunction.name}
+      onBodyChange={handleRunnableBodyChange}
+      body={runnableFunction.body}
+      params={runnableFunction.parameters} />
   }
   else if (selectedMode === 'assembly') {
     mainComponent = <AssemblyMode projectId={projectId} body={assembly} />

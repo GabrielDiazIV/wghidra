@@ -7,18 +7,28 @@ export const url = '/api/project';
 export const options = () => {
   return {
     method: 'POST',
-    body: "",
+    body: {},
     headers: {
       Accept: '*/*',
       // 'User-Agent': 'Thunder Client (https://www.thunderclient.com)',
       // 'Content-Type': 'multipart/form-data'
+      'Content-Type': 'application/json'
     }
   }
 };
 
+
 export type ApiResponse<T> = {
   data: T,
   error: { msg: string, code: number }
+}
+
+export type ScriptResult = {
+  name: string,
+  output: { output: any }
+}
+export type ScriptResponse = {
+  results: ScriptResult[]
 }
 
 export type Function = {
@@ -31,7 +41,7 @@ export type Function = {
 export type Project = {
   assembly: string,
   functions: Function[],
-  projectId: string,
+  project_id: string,
 }
 
 
@@ -76,8 +86,9 @@ function App() {
       controller.abort()
     }, 60_000)
 
+
     let request_opt = options()
-    request_opt.body = formData
+    request_opt.body = JSON.stringify({ "skip": 1 })
     fetch(url, request_opt)
       .then(async response => {
         console.log(response)
@@ -89,7 +100,7 @@ function App() {
           fns.sort()
           setFunctionList(fns);
           setAssembly(data.data.assembly);
-          setProjectID(data.data.projectId);
+          setProjectID(data.data.project_id);
           transitionScreens('success');
         }
         else {

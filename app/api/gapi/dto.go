@@ -19,6 +19,7 @@ type gresponse struct {
 }
 
 type project_in struct {
+	Skip int `json:"skip,omitempty"`
 }
 
 type project_out struct {

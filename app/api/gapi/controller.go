@@ -2,13 +2,34 @@ package gapi
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
+	"github.com/gabrieldiaziv/wghidra/app/repo/mock"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 )
 
+func skip(c echo.Context) error {
+	var p project_out
+	if err := json.Unmarshal([]byte(mock.Project), &p); err != nil {
+		log.Errorf("could marshal skip: %v", err)
+		return gError(c, "could not skip", http.StatusInternalServerError)
+	}
+
+	return gSuccess(c, p)
+}
+
 func (g *gapi) postProject(c echo.Context) error {
+
+	var p_in project_in
+	if err := c.Bind(&p_in); err != nil {
+		return gError(c, err.Error(), http.StatusBadRequest)
+	}
+
+	if p_in.Skip != 0 {
+		return skip(c)
+	}
 
 	exe, err := c.FormFile("project")
 	if err != nil {
@@ -21,13 +42,6 @@ func (g *gapi) postProject(c echo.Context) error {
 		log.Errorf("cannot open file: %v", err)
 		return gError(c, "cannot open file", http.StatusBadRequest)
 	}
-
-	// defer project.Close()
-	// project, err := os.Open("input.out")
-	// if err != nil {
-	// 	log.Errorf("cannot open file: %v", err)
-	// 	return gError(c, "cannot open file", http.StatusBadRequest)
-	// }
 
 	// c.Request().Context()
 	projectId, functions, asm, err :=

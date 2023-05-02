@@ -3,13 +3,17 @@ import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-c_cpp';
 import 'ace-builds/src-noconflict/theme-monokai';
 import '../css/RunnerMode.css';
-import { options } from '../App';
+import { ApiResponse, ScriptResponse, options } from '../App';
 
 
 function RunnerMode(props) {
-  const { params, name, projectId } = props;
+  const {
+    params, name,
+    editedFunctionList,
+    setEditedFunctionList
+  } = props;
+
   const [body, setBody] = useState(props.body);
-  const [exebody, setExeBody] = useState(props.body);
   const [output, setOutput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [textValues, setTextValues] = useState<string[]>(new Array(params.length).fill(''));
@@ -20,26 +24,33 @@ function RunnerMode(props) {
     setIsLoading(true);
     try {
       // use
+
+      for (let i = 0; i < editedFunctionList.length; i++) {
+        if (editedFunctionList[i].name === name) {
+          editedFunctionList[i].body = body;
+          break
+        }
+      }
+
       const requestBody = {
-        projectId: projectId,
-        functionList: body,
-        executeFunction: name,
+        functions: editedFunctionList,
+        execute_function: name,
         parameters: textValues
       };
 
       let req_opts = options()
-      req_opts.body = requestBody
+      req_opts.body = JSON.stringify(requestBody)
       console.log(req_opts.body)
 
-      const response = await fetch(`http://localhost:6969/api/scripts`, req_opts);
+      const response = await fetch(`http://localhost:6969/api/run`, req_opts);
 
-      const data = await response.json();
-      setOutput(data.results);
-      textAreaRef.current.scrollIntoView({ behavior: 'smooth' });
+      const resp = await response.json() as ApiResponse<ScriptResponse>;
+      setEditedFunctionList([...editedFunctionList])
+      setOutput(resp.data.results[0].output.output);
+      // textAreaRef.current.scrollIntoView({ behavior: 'smooth' });
     } catch (error) {
       console.error(error);
 
-      setOutput("Lorem ipsum dolor sit amet, consectetur adipiscing elit. In malesuada turpis enim, in placerat odio vestibulum vel. Praesent fermentum sem ut neque tempus mattis. Donec malesuada ligula at tortor tincidunt hendrerit. Morbi lobortis vitae urna ac pharetra. Vestibulum lacinia, tellus eget lacinia mollis, neque sem rutrum ipsum, id ultrices dolor orci sed lectus. Pellentesque molestie sem vitae felis ultrices blandit. Aliquam lobortis condimentum arcu eget suscipit. Praesent vestibulum egestas lorem nec egestas. Proin eget ipsum ex. Nulla ullamcorper gravida ligula. Sed sit amet arcu vehicula, fringilla nisi nec, egestas velit. Integer tristique tempus nisi, id ultrices nunc convallis quis. Phasellus at fringilla ligula.");
       textAreaRef.current.scrollIntoView({ behavior: 'smooth' });
     } finally {
       setIsLoading(false);
@@ -53,7 +64,7 @@ function RunnerMode(props) {
   };
 
   function bodyChange(newValue) {
-    props.onBodyChange(name, newValue);
+    setBody(newValue);
   }
 
   // run when body changes
@@ -72,7 +83,7 @@ function RunnerMode(props) {
           mode="c_cpp"
           theme="monokai"
           value={body}
-          onChange={(newValue) => bodyChange(newValue)}
+          onChange={(newValue) => setBody(newValue)}
           fontSize={16}
           width="100%"
           height="auto"
