@@ -18,6 +18,8 @@ RUN apt-get install -y python3-pip
 RUN apt-get install -y netcat
 RUN apt-get install -y nano
 RUN pip install ghidra_bridge
+RUN pip install openai
+RUN pip install python-dotenv
 RUN python3 -m ghidra_bridge.install_server ./scripts
 # uncomment this for testing
 CMD ["tail", "-f", "/dev/null"]
