@@ -1,4 +1,3 @@
-
 import openai
 import re
 import argparse
@@ -15,9 +14,9 @@ functionsJSON = dict()
 functionsJSON["output"] = []
 load_dotenv()
 
-def summarize_cpp_code(code):
+def demangle_cpp_code(code):
     # Prepare the prompt for GPT-3.5
-    prompt = "Code: " + code + "\n\nSummarize the functionality of the code."
+    prompt = "Given the following code: " + code + "\n\nRewrite the code, but rename function parameters and variables to better describe their purposes. Don't rename functions or #include statements. Just respond with the rewritten code and nothing else."
 
     # Set up OpenAI API credentials
     openai.api_key = os.getenv("WGHIDRA_SECRET_KEY") # Replace with your OpenAI API keyPI
@@ -52,11 +51,10 @@ def write_function(function, subFunctionFilenames, decomp_res, decomp_src):
     # write rest of file
     function_body += decomp_src
 
-    summary = summarize_cpp_code(function_body)
+    demangled_body = demangle_cpp_code(function_body)
     j = {
         "name" : function_name,
-        "body" : function_body,
-        "summary" : summary
+        "body" : demangled_body
     }
 
     functionsJSON["output"].append(j)
@@ -106,4 +104,4 @@ def extract_decomps():
         logging.warning("Failed to extract the following functions:\n\n  - " + "\n  - ".join(failed_to_extract))
 
 
-extract_decomps() # Extract and summarize all
+extract_decomps() # Extract and demangle all
