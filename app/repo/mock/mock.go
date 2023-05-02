@@ -3,6 +3,7 @@ package mock
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"log"
 
@@ -36,7 +37,7 @@ func (s *store) GetDecompiled(ctx context.Context, id string) (io.ReadCloser, er
 func (s *store) GetExe(ctx context.Context, id string) (io.ReadCloser, error) {
 	data, ok := s.exe[id]
 	if !ok {
-		log.Fatal("could not find exe")
+		return nil, errors.New("could not exe")
 	}
 
 	reader := io.NopCloser(bytes.NewReader(data))

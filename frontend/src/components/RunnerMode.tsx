@@ -3,10 +3,11 @@ import AceEditor from 'react-ace';
 import 'ace-builds/src-noconflict/mode-c_cpp';
 import 'ace-builds/src-noconflict/theme-monokai';
 import '../css/RunnerMode.css';
+import { options } from '../App';
 
 
 function RunnerMode(props) {
-  const { params, name } = props;
+  const { params, name, projectId } = props;
   const [body, setBody] = useState(props.body);
   const [exebody, setExeBody] = useState(props.body);
   const [output, setOutput] = useState('');
@@ -20,18 +21,17 @@ function RunnerMode(props) {
     try {
       // use
       const requestBody = {
+        projectId: projectId,
         functionList: body,
         executeFunction: name,
         parameters: textValues
       };
 
-      const response = await fetch(`https://localhost:6969/api/scripts`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(requestBody)
-      });
+      let req_opts = options()
+      req_opts.body = requestBody
+      console.log(req_opts.body)
+
+      const response = await fetch(`http://localhost:6969/api/scripts`, req_opts);
 
       const data = await response.json();
       setOutput(data.results);

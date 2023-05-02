@@ -12,6 +12,14 @@ height: 80vh;
 background-color: #515151;
 padding: 20px;
 box-sizing: border-box;
+    overflow-y: auto;
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+    border-radius: 10px
+}
+
+.sidebar::-webkit-scrollbar { 
+    display: none;  /* Safari and Chrome */
 }
 
 .sidebar__option {

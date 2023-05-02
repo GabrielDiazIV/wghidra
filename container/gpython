@@ -3,6 +3,7 @@
 # Wrapper for any outside python script that uses the ghidra_bridge
 /container/ghidra/support/analyzeHeadless /container/ghidra ghidra_project -import /container/input/input.out -scriptPath /container/scripts -postscript ghidra_bridge_server.py &
 
-echo starting ping process
-sleep 40
+while ! nc -z localhost 4768; do   
+  sleep 0.1
+done
 python3 /container/scripts/"$@"

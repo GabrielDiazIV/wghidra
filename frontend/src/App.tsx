@@ -16,6 +16,24 @@ export const options = () => {
   }
 };
 
+export type ApiResponse<T> = {
+  data: T,
+  error: { msg: string, code: number }
+}
+
+export type Function = {
+  name: string,
+  body: string,
+  parameters: string[],
+
+}
+
+export type Project = {
+  assembly: string,
+  functions: Function[],
+  projectId: string,
+}
+
 
 function App() {
   const [screen, setScreen] = useState('landing');
@@ -23,7 +41,7 @@ function App() {
   const [transition, setTransition] = useState('');
   const [assembly, setAssembly] = useState('');
   const [projectId, setProjectID] = useState('');
-  const [functionList, setFunctionList] = useState([])
+  const [functionList, setFunctionList] = useState<Function[]>([])
   const [errorMessage, setErrorMessage] = useState('')
 
   function transitionScreens(responseType) {
@@ -64,11 +82,14 @@ function App() {
       .then(async response => {
         console.log(response)
         if (response.ok) {
-          const data = await response.json();
+          const data = await response.json() as ApiResponse<Project>;
+
           console.log(data)
-          setFunctionList(data.functions);
-          setAssembly(data.asm);
-          setProjectID(data.projectId);
+          const fns = data.data.functions
+          fns.sort()
+          setFunctionList(fns);
+          setAssembly(data.data.assembly);
+          setProjectID(data.data.projectId);
           transitionScreens('success');
         }
         else {

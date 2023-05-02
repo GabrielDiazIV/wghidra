@@ -30,7 +30,7 @@ func (g *gapi) postProject(c echo.Context) error {
 	// }
 
 	// c.Request().Context()
-	projectId, functions, err :=
+	projectId, functions, asm, err :=
 		g.wghidra.ParseProject(context.Background(), project)
 
 	if err != nil {
@@ -40,6 +40,7 @@ func (g *gapi) postProject(c echo.Context) error {
 
 	return gSuccess(c, project_out{
 		Functions: functions,
+		Assembly:  asm,
 		ProjectID: projectId,
 	})
 }

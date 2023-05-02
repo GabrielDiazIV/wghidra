@@ -42,13 +42,13 @@ func (w *wghidra) PyRun(ctx context.Context, executeFunction string, paramters [
 }
 
 // ParseProject implements defs.WGhidra
-func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, []interface{}, error) {
+func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, []interface{}, string, error) {
 
 	id := uuid.New().String()
 
 	exeBuf, err := system.ToDockerTar(fstream, "input.out")
 	if err != nil {
-		return "", nil, err
+		return "", nil, "", err
 	}
 
 	readers := system.GetReaders(&exeBuf, 2)
@@ -63,26 +63,36 @@ func (w *wghidra) ParseProject(ctx context.Context, fstream io.Reader) (string, 
 		Exe: readers[1],
 		Tasks: []bo.UnitTask{
 			bo.NewDecompileTask(id),
-			// bo.NewDissasemblyTask(id),
+			bo.NewDissasemblyTask(id),
 		},
 	}
 
 	// run decompile task
 	res := w.dokr.Run(ctx, defs)
 
-	fns, okDec := res[0].Output["output"]
-	if !okDec {
+	idxDec := 0
+	idxAsm := 1
+
+	if res[0].Name == bo.DissasmbleTaskName {
+		idxAsm = 0
+		idxDec = 1
+	}
+
+	fns, okDec := res[idxDec].Output["output"]
+	asm, okAsm := res[idxAsm].Output["output"]
+	if !okDec || !okAsm {
 		log.Errorf("does not exist results: okASM = %b )", okDec)
-		return "", nil, errors.New("not valid type")
+		return "", nil, "", errors.New("not valid type")
 	}
 
 	fns_out, okDec := fns.([]interface{})
+	asm_out, okAsm := asm.(string)
 	if !okDec {
 		log.Errorf("does not exist results: okASM = %b )", okDec)
-		return "", nil, errors.New("not valid type")
+		return "", nil, "", errors.New("not valid type")
 	}
 
-	return id, fns_out, nil
+	return id, fns_out, asm_out, nil
 }
 
 // RunScripts implements defs.WGhidra
